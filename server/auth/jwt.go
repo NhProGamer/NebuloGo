@@ -6,6 +6,7 @@ import (
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"log"
+	"net/http"
 	"time"
 )
 
@@ -60,10 +61,15 @@ func initParams() *jwt.GinJWTMiddleware {
 		Authorizator:    authorizator(),
 		Unauthorized:    unauthorized(),
 		TokenLookup:     "header: Authorization, query: token, cookie: jwt",
-		// TokenLookup: "query:token",
-		// TokenLookup: "cookie:token",
-		TokenHeadName: "Bearer",
-		TimeFunc:      time.Now,
+		TokenHeadName:   "Bearer",
+		TimeFunc:        time.Now,
+
+		SendCookie:     true,
+		SecureCookie:   false, //non HTTPS dev environments
+		CookieHTTPOnly: true,  // JS can't modify
+		CookieDomain:   "127.0.0.1:8080",
+		CookieName:     "token",                  // default jwt
+		CookieSameSite: http.SameSiteDefaultMode, //SameSiteDefaultMode, SameSiteLaxMode, SameSiteStrictMode, SameSiteNoneMode
 	}
 }
 
@@ -109,7 +115,7 @@ func authenticator() func(c *gin.Context) (interface{}, error) {
 
 func authorizator() func(data interface{}, c *gin.Context) bool {
 	return func(data interface{}, c *gin.Context) bool {
-		if /*v, ok := data.(*User); ok && v.UserName == "neo.huyghe"*/ true {
+		if /*v*/ _, ok := data.(*User); ok /* && v.UserName == "neo.huyghe"*/ {
 			return true
 		}
 		return false
