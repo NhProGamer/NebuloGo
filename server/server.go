@@ -1,18 +1,15 @@
 package server
 
 import (
-	"NebuloGo/config"
 	"github.com/gin-gonic/gin"
 )
 
 type Server struct {
-	Cfg *config.Config
 	Gin *gin.Engine
 }
 
-func NewServer(cfg *config.Config) *Server {
+func NewServer() *Server {
 	return &Server{
-		Cfg: cfg,
 		Gin: gin.Default(),
 	}
 }

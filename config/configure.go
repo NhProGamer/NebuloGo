@@ -8,19 +8,23 @@ import (
 )
 
 type Config struct {
-	HOST string `yaml:"host"`
-	PORT int    `yaml:"port"`
+	Host      string `yaml:"host"`
+	Port      int    `yaml:"port"`
+	JwtSecret string `yaml:"jwt-secret"`
 }
 
-func LoadConfig() *Config {
+var Configuration *Config
+
+func LoadConfig() {
 	exist, err := utils.DoesExistFile("config.yaml")
 	if err != nil {
 		log.Fatal(err)
 	}
 	if !exist {
 		err := writeConfig(Config{
-			HOST: "127.0.0.1",
-			PORT: 8080,
+			Host:      "127.0.0.1",
+			Port:      8080,
+			JwtSecret: "ASuperSecretSecretlyHiddenThatNobodyKnows",
 		})
 		if err != nil {
 			log.Fatal(err)
@@ -40,7 +44,7 @@ func LoadConfig() *Config {
 		log.Fatalf("error unmarshalling YAML: %v", err)
 	}
 
-	return &config
+	Configuration = &config
 }
 
 func writeConfig(config Config) error {
