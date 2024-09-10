@@ -1,10 +1,55 @@
 <!DOCTYPE html>
-<html lang="fr">
-<head>
+<html lang="en">
+  <head>
     <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <link rel="stylesheet" href="/static/index.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- Include Axios for AJAX requests -->
+  </head>
+  <body>
+    <div id="toast"></div>
+    <div class="form-container">
+      <form id="updateForm">
+        
+          <label for="username">Username:</label>
+          <input type="text" name="username" id="username" pattern="^[A-Z_a-z]\w*$" value="" required>
 
-</body>
+          <label for="password">Password:</label>
+          <input type="text" name="password" id="password" value="" required>
+
+          <button type="submit" class="update">Register</button>
+
+
+      </form>
+    </div>
+    <script>
+      document.getElementById('updateForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent the default form submission
+        // Send PATCH request using Axios (or XMLHttpRequest)
+        const params = new URLSearchParams();
+        params.append('username', document.getElementById('username').value);
+        params.append('password', document.getElementById('password').value);
+        axios.post('/api/register?' + params.toString()).then(function(response) {
+          console.log('Response:', response.data);
+          showToast("User registered")
+          //alert('PATCH request successful');
+        }).catch(function(error) {
+          console.error('Error:', error);
+          showToast("Error: " + error.response.data)
+        });
+      });
+
+      function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.innerText = message;
+        toast.className = "show";
+        setTimeout(() => {
+          toast.className = toast.className.replace("show", "");
+        }, 8000);
+      }
+    </script>
+  </body>
 </html>
