@@ -18,6 +18,7 @@ var database *sql.DB
 var UsersCache map[string]User
 
 func InitSqliteDB() {
+	UsersCache = make(map[string]User)
 	databaseFile := "./database.db"
 
 	exist, err := utils.DoesExistFile(databaseFile)
@@ -93,7 +94,7 @@ func loadUsersToCache() error {
 	return nil
 }
 
-func verifyUserInCache(username, passwordHash string) bool {
+func VerifyUserInCache(username, passwordHash string) bool {
 	user, exists := UsersCache[username]
 	if !exists {
 		return false
@@ -102,7 +103,7 @@ func verifyUserInCache(username, passwordHash string) bool {
 	return passwordHash == user.PasswordHash
 }
 
-func insertUserAndUpdateCache(username, passwordHash string) error {
+func InsertUserAndUpdateCache(username, passwordHash string) error {
 
 	insertQuery := `INSERT INTO users (username, password_hash) VALUES (?, ?)`
 	_, err := database.Exec(insertQuery, username, UsersCache)

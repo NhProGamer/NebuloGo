@@ -2,6 +2,7 @@ package auth
 
 import (
 	"NebuloGo/config"
+	"NebuloGo/database"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -95,11 +96,11 @@ func authenticator() func(c *gin.Context) (interface{}, error) {
 		userID := loginVals.Username
 		password := loginVals.Password
 
-		if (userID == "admin" && password == "admin") || (userID == "test" && password == "test") {
+		if sqlite.VerifyUserInCache(userID, password) {
 			return &User{
-				UserName:  userID,
-				LastName:  "Bo-Yi",
-				FirstName: "Wu",
+				UserName: userID,
+				//LastName:  "Bo-Yi",
+				//FirstName: "Wu",
 			}, nil
 		}
 		return nil, jwt.ErrFailedAuthentication
@@ -108,7 +109,7 @@ func authenticator() func(c *gin.Context) (interface{}, error) {
 
 func authorizator() func(data interface{}, c *gin.Context) bool {
 	return func(data interface{}, c *gin.Context) bool {
-		if v, ok := data.(*User); ok && v.UserName == "admin" {
+		if /*v, ok := data.(*User); ok && v.UserName == "neo.huyghe"*/ true {
 			return true
 		}
 		return false
