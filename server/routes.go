@@ -13,6 +13,7 @@ func ConfigureRoutes(server *Server) {
 
 	//Route for login page
 	router.GET("/login", routes.GetLoginPage)
+	router.GET("/register", routes.GetRegisterPage)
 
 	//Route for testing purposes
 	//router.GET("/data", routes.GetDatabaseInfos)
