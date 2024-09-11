@@ -60,7 +60,7 @@ func initParams() *jwt.GinJWTMiddleware {
 		Authenticator:   authenticator(),
 		Authorizator:    authorizator(),
 		Unauthorized:    unauthorized(),
-		TokenLookup:     "header: Authorization, query: token, cookie: jwt",
+		TokenLookup:     "header: Authorization, query: token, cookie: token",
 		TokenHeadName:   "Bearer",
 		TimeFunc:        time.Now,
 
@@ -68,7 +68,7 @@ func initParams() *jwt.GinJWTMiddleware {
 		SecureCookie:   false, //non HTTPS dev environments
 		CookieHTTPOnly: true,  // JS can't modify
 		CookieDomain:   "127.0.0.1:8080",
-		CookieName:     "token",                  // default jwt
+		CookieName:     "token",
 		CookieSameSite: http.SameSiteDefaultMode, //SameSiteDefaultMode, SameSiteLaxMode, SameSiteStrictMode, SameSiteNoneMode
 	}
 }

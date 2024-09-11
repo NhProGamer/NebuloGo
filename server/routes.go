@@ -7,14 +7,21 @@ import (
 
 func ConfigureRoutes(server *Server) {
 	router := server.Gin
+	//Serve html templates and static files
 	router.LoadHTMLGlob("templates/*")
 	router.Static("static", "public/static")
-	router.GET("/login", routes.GetLoginPage)
-	router.GET("/data", routes.GetDatabaseInfos)
 
-	router.POST("/api/v1/login", auth.JWTMiddleware.LoginHandler)
+	//Route for login page
+	router.GET("/login", routes.GetLoginPage)
+
+	//Route for testing purposes
+	//router.GET("/data", routes.GetDatabaseInfos)
+
 	router.NoRoute(auth.JWTMiddleware.MiddlewareFunc(), auth.HandleNoRoute())
-	authorization := router.Group("/auth", auth.JWTMiddleware.MiddlewareFunc())
+
+	//Api Routes
+	router.POST("/api/v1/auth/login", auth.JWTMiddleware.LoginHandler)
+	authorization := router.Group("/api/v1/auth", auth.JWTMiddleware.MiddlewareFunc())
 	authorization.GET("/refresh_token", auth.JWTMiddleware.RefreshHandler)
-	authorization.GET("/hello", auth.HelloHandler)
+	authorization.GET("/profile", auth.HelloHandler)
 }

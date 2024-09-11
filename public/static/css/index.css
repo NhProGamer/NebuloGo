@@ -21,7 +21,6 @@ form {
   width: 100%;
   box-sizing: border-box;
   margin-top: 20px;
-  display: flex;
 }
 
 .column-left {
@@ -53,6 +52,7 @@ select {
 }
 
 button {
+  width: 100%;
   color: #fff;
   padding: 12px 20px;
   border: none;
