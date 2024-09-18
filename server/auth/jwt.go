@@ -3,10 +3,14 @@ package auth
 import (
 	"NebuloGo/config"
 	"NebuloGo/database"
+	"encoding/hex"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/argon2"
+
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -17,14 +21,13 @@ type login struct {
 
 var (
 	identityKey = "id"
-	port        string
+	userIdKey   = "user_id"
 )
 
 // User demo
 type User struct {
-	UserName  string
-	FirstName string
-	LastName  string
+	UserName string
+	UserId   string
 }
 
 var JWTMiddleware *jwt.GinJWTMiddleware
@@ -50,7 +53,7 @@ func initParams() *jwt.GinJWTMiddleware {
 
 	return &jwt.GinJWTMiddleware{
 		Realm:       "nebulogo",
-		Key:         []byte(config.Configuration.JwtSecret),
+		Key:         []byte(config.Configuration.JWT.Secret),
 		Timeout:     time.Hour,
 		MaxRefresh:  time.Hour,
 		IdentityKey: identityKey,
@@ -65,9 +68,9 @@ func initParams() *jwt.GinJWTMiddleware {
 		TimeFunc:        time.Now,
 
 		SendCookie:     true,
-		SecureCookie:   false, //non HTTPS dev environments
-		CookieHTTPOnly: true,  // JS can't modify
-		CookieDomain:   "127.0.0.1:8080",
+		SecureCookie:   strings.HasPrefix(config.Configuration.Server.ServerURL, "https://"), //non HTTPS dev environments
+		CookieHTTPOnly: true,                                                                 // JS can't modify
+		CookieDomain:   strings.SplitN(config.Configuration.Server.ServerURL, "//", 2)[1],
 		CookieName:     "token",
 		CookieSameSite: http.SameSiteDefaultMode, //SameSiteDefaultMode, SameSiteLaxMode, SameSiteStrictMode, SameSiteNoneMode
 	}
@@ -78,6 +81,7 @@ func payloadFunc() func(data interface{}) jwt.MapClaims {
 		if v, ok := data.(*User); ok {
 			return jwt.MapClaims{
 				identityKey: v.UserName,
+				userIdKey:   v.UserId,
 			}
 		}
 		return jwt.MapClaims{}
@@ -89,6 +93,7 @@ func identityHandler() func(c *gin.Context) interface{} {
 		claims := jwt.ExtractClaims(c)
 		return &User{
 			UserName: claims[identityKey].(string),
+			UserId:   claims[userIdKey].(string),
 		}
 	}
 }
@@ -102,9 +107,17 @@ func authenticator() func(c *gin.Context) (interface{}, error) {
 		userID := loginVals.Username
 		password := loginVals.Password
 
-		if sqlite.VerifyUserInCache(userID, password) {
+		salt := []byte(config.Configuration.Argon.Salt)
+		iterations := config.Configuration.Argon.Iterations
+		memory := config.Configuration.Argon.Memory
+		parallelism := config.Configuration.Argon.Parallelism
+		hashlenght := config.Configuration.Argon.HashLenght
+		computedHash := argon2.IDKey([]byte(password), salt, iterations, memory, parallelism, hashlenght)
+
+		if sqlite.VerifyUserInCache(userID, hex.EncodeToString(computedHash)) {
 			return &User{
 				UserName: userID,
+				UserId:   "1",
 				//LastName:  "Bo-Yi",
 				//FirstName: "Wu",
 			}, nil

@@ -53,14 +53,17 @@ func InitSqliteDB() {
 }
 
 func generateDbStructure() error {
-	createTableQuery := `
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL
-    );`
+	createTableUsers := `
+    CREATE TABLE "users" (
+	"userId"	INTEGER NOT NULL UNIQUE,
+	"username"	VARCHAR(25) NOT NULL UNIQUE,
+	"passwordHash"	TEXT NOT NULL,
+	"firstName"	VARCHAR(25),
+	"lastName"	VARCHAR(25),
+	PRIMARY KEY("userId" AUTOINCREMENT)
+)`
 
-	_, err := database.Exec(createTableQuery)
+	_, err := database.Exec(createTableUsers)
 	if err != nil {
 		return err
 	}
@@ -70,7 +73,7 @@ func generateDbStructure() error {
 
 func loadUsersToCache() error {
 
-	rows, err := database.Query("SELECT username, password_hash FROM users")
+	rows, err := database.Query("SELECT username, passwordHash FROM users")
 	if err != nil {
 		return err
 	}
@@ -99,13 +102,12 @@ func VerifyUserInCache(username, passwordHash string) bool {
 	if !exists {
 		return false
 	}
-
 	return passwordHash == user.PasswordHash
 }
 
 func InsertUserAndUpdateCache(username, passwordHash string) error {
 
-	insertQuery := `INSERT INTO users (username, password_hash) VALUES (?, ?)`
+	insertQuery := `INSERT INTO users (username, passwordHash) VALUES (?, ?)`
 	_, err := database.Exec(insertQuery, username, UsersCache)
 	if err != nil {
 		return err

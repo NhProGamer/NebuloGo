@@ -18,6 +18,11 @@
           <label for="password">Password:</label>
           <input type="password" name="password" id="password" value="" required>
 
+          <div style="display: flex;">
+            <input type="checkbox" name="remember" value="" id="remember" style="width: auto">
+            <b>Remember me ?</b>
+          </div>
+
           <button type="submit" class="update">Login</button>
       </form>
     </div>
@@ -29,12 +34,9 @@
         params.append('username', document.getElementById('username').value);
         params.append('password', document.getElementById('password').value);
         axios.post('/api/v1/auth/login?' + params.toString()).then(function(response) {
-          console.log('Response:', response.data);
           showToast("User logged in")
-          //alert('PATCH request successful');
         }).catch(function(error) {
-          console.error('Error:', error);
-          showToast("Error: " + error.response.data)
+          showToast("Error: " + error.response.data.message)
         });
       });
 

@@ -11,12 +11,14 @@ func ConfigureRoutes(server *Server) {
 	router.LoadHTMLGlob("templates/*")
 	router.Static("static", "public/static")
 
-	//Route for login page
+	//Routes for login system
 	router.GET("/login", routes.GetLoginPage)
 	router.GET("/register", routes.GetRegisterPage)
+	router.GET("/logout", routes.GetLogout)
 
-	//Route for testing purposes
-	//router.GET("/data", routes.GetDatabaseInfos)
+	//Routes for app
+	app := router.Group("/app", auth.JWTMiddleware.MiddlewareFunc())
+	app.GET("/", routes.NebuloGoApp)
 
 	router.NoRoute(auth.JWTMiddleware.MiddlewareFunc(), auth.HandleNoRoute())
 
@@ -24,5 +26,6 @@ func ConfigureRoutes(server *Server) {
 	router.POST("/api/v1/auth/login", auth.JWTMiddleware.LoginHandler)
 	authorization := router.Group("/api/v1/auth", auth.JWTMiddleware.MiddlewareFunc())
 	authorization.GET("/refresh_token", auth.JWTMiddleware.RefreshHandler)
-	authorization.GET("/profile", auth.HelloHandler)
+	authApi := router.Group("/api/v1/", auth.JWTMiddleware.MiddlewareFunc())
+	authApi.GET("/download/:userID/:filename", routes.DownloadFile)
 }
