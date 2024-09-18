@@ -66,8 +66,12 @@
     {{template "directory.html" .}}
     {{end}}
     {{end}}
-</ul></div>
+</ul>
+<div id="HEHEHEHA" class="dropzone"></div>
+</div>
 
-
+<script>
+    let myDropzone = new Dropzone("div#HEHEHEHA", { url: "/api/v1/upload/{{.UserId}}"});
+</script>
 </body>
 </html>

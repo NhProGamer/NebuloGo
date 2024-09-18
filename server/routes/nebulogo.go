@@ -1,9 +1,9 @@
 package routes
 
 import (
-	"fmt"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
+	"log"
 	"os"
 )
 
@@ -13,7 +13,7 @@ func NebuloGoApp(c *gin.Context) {
 
 	files, err := os.ReadDir("./storage/" + claims["user_id"].(string))
 	if err != nil {
-		fmt.Println("Erreur lors de la lecture du répertoire:", err)
+		log.Println(err)
 	}
 	for _, file := range files {
 		if file.IsDir() {
@@ -23,7 +23,8 @@ func NebuloGoApp(c *gin.Context) {
 		}
 	}
 	c.HTML(200, "app.html", gin.H{
-		"Items": items,
+		"Items":  items,
+		"UserId": claims["user_id"].(string),
 	})
 
 }
