@@ -3,8 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>NebuloGo</title>
-    <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" type="text/css" />
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
@@ -69,23 +67,14 @@
     {{end}}
     {{end}}-->
 </ul>
-<div id="uploadBox" class="dropzone"></div>
 </div>
+<div id="progressContainer" class="progressContainer"></div>
 <script defer>
     let ActualPath = "{{.ActualPath}}";
     let UserId = "{{.UserId}}"
-    /*Dropzone.autoDiscover = false;
-    let myDropzone = new Dropzone("div#uploadBox", {
-        url: "/api/v1/files/upload?UserId=" + UserId + "&" + "path=" + ActualPath,
-        init: function () {
-            this.on("processing", function(file) {
-                this.options.url = "/api/v1/files/upload?UserId=" + UserId + "&" + "path=" + ActualPath;
-            });
-            this.on("success", function (file, response) {
-                loadFolderContent()
-            });
-        }
-    });*/
+    const MAX_PARALLEL_UPLOADS = 3;
+
+    // ---------------------- BROWSING FILES ----------------------
 
     function changeFolder(folderId) {
         ActualPath += "" + folderId + "/"
@@ -123,8 +112,114 @@
         ActualPath = (event.state && event.state.path !== null) ? event.state.path : "";
         loadFolderContent()
     });
-    loadFolderContent()
+    // ---------------------- UPLOAD FILE ----------------------
+    const dropZone = document.getElementById('files');
 
+    // Prévenir le comportement par défaut pour permettre le drag & drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => e.preventDefault());
+    });
+
+    // Ajouter une classe quand l'élément est survolé par un fichier
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            //dropZone.classList.add('hover');
+        });
+    });
+
+    // Retirer la classe quand le fichier quitte la div
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            //dropZone.classList.remove('hover');
+        });
+    });
+
+    // Traiter le fichier quand il est déposé
+    dropZone.addEventListener('drop', (event) => {
+        const files = event.dataTransfer.files;
+        if (files.length) {
+            handleFiles(files);
+        }
+    });
+
+    // Fonction pour traiter les fichiers
+    // Fonction pour traiter et uploader les fichiers avec limite en parallèle
+    function handleFiles(files) {
+        // Vider le conteneur de progressions existantes
+        progressContainer.innerHTML = '';
+
+        // Convertir la FileList en Array
+        const fileArray = Array.from(files);
+
+        // Créer un tableau pour suivre les fichiers en attente
+        let queue = fileArray.slice(); // File d'attente
+        let activeUploads = 0; // Nombre d'uploads actifs
+
+        // Fonction pour lancer les uploads
+        function startUpload() {
+            while (activeUploads < MAX_PARALLEL_UPLOADS && queue.length > 0) {
+                const file = queue.shift(); // Prendre un fichier de la queue
+                uploadFile(file); // Lancer l'upload
+            }
+        }
+
+        // Fonction pour uploader un seul fichier
+        function uploadFile(file) {
+            activeUploads++;
+
+            // Créer des éléments pour la barre de progression
+            const progressWrapper = document.createElement('div');
+            progressWrapper.style.marginBottom = '10px';
+
+            const progressBarContainer = document.createElement('div');
+            progressBarContainer.style.width = '100%';
+            progressBarContainer.style.backgroundColor = '#f3f3f3';
+
+            const progressBar = document.createElement('div');
+            progressBar.style.width = '0%';
+            progressBar.style.height = '20px';
+            progressBar.style.backgroundColor = '#4caf50';
+
+            const progressText = document.createElement('p');
+            progressText.textContent = '0%';
+
+            progressBarContainer.appendChild(progressBar);
+            progressWrapper.appendChild(progressBarContainer);
+            progressWrapper.appendChild(progressText);
+            progressContainer.appendChild(progressWrapper);
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            axios.post("/api/v1/files/upload?UserId=" + UserId + "&" + "path=" + ActualPath, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                },
+                withCredentials: true,
+                onUploadProgress: function(progressEvent) {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    progressBar.style.width = percentCompleted + '%';
+                    progressText.textContent = percentCompleted + '%';
+                }
+            })
+                .then(response => {
+                    console.log('Upload réussi :', response.data);
+                    loadFolderContent()
+                })
+                .catch(error => {
+                    console.error('Erreur lors de l\'upload :', error);
+                })
+                .finally(() => {
+                    // Décrémenter le compteur d'uploads actifs et lancer le prochain upload
+                    activeUploads--;
+                    startUpload(); // Relancer la file d'attente si d'autres fichiers sont présents
+                });
+        }
+
+        // Démarrer le premier ensemble d'uploads
+        startUpload();
+    }
+    loadFolderContent()
 </script>
 </body>
 </html>
