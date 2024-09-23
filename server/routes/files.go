@@ -3,26 +3,28 @@ package routes
 import (
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 )
 
 func DownloadFile(c *gin.Context) {
-	requestedUserID := c.Param("userID")
-	filename := c.Param("filename")
+	requestedUserID := c.DefaultQuery("userId", "")
+	path := c.DefaultQuery("path", "")
+	filename := c.DefaultQuery("filename", "")
 	claims := jwt.ExtractClaims(c)
 
 	if claims["user_id"].(string) != requestedUserID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+		c.JSON(http.StatusForbidden, "Forbidden")
 		return
 	}
 	// Build file path
-	filePath := filepath.Join("storage", claims["user_id"].(string), filename)
+	filePath := filepath.Join("storage", claims["user_id"].(string), path, filename)
 
 	// Check if file exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "File not found"})
+		c.JSON(http.StatusNotFound, "Not Found")
 		return
 	}
 
@@ -32,12 +34,13 @@ func DownloadFile(c *gin.Context) {
 }
 
 func UploadFile(c *gin.Context) {
-	requestedUserID := c.Param("userID")
+	requestedUserID := c.DefaultQuery("UserId", "")
+	path := c.DefaultQuery("path", "")
 	//filename := c.Param("filename")
 	claims := jwt.ExtractClaims(c)
 
 	if claims["user_id"].(string) != requestedUserID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+		c.JSON(http.StatusForbidden, "Forbidden")
 		return
 	}
 
@@ -46,10 +49,38 @@ func UploadFile(c *gin.Context) {
 		c.String(400, "Failed to get file: %s", err.Error())
 		return
 	}
-	savePath := "storage/" + claims["user_id"].(string) + "/" + file.Filename
+	savePath := filepath.Join("storage", claims["user_id"].(string), path, file.Filename)
 
 	if err := c.SaveUploadedFile(file, savePath); err != nil {
 		c.String(500, "Failed to save file: %s", err.Error())
 		return
+	}
+}
+
+func Content(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	requestedUserID := c.DefaultQuery("userId", "")
+	path := c.DefaultQuery("path", "")
+
+	if claims["user_id"].(string) == requestedUserID {
+		var items []interface{}
+		files, err := os.ReadDir("./storage/" + requestedUserID + "/" + path)
+		if err != nil {
+			log.Println(err)
+			c.JSON(http.StatusNotFound, "Not Found")
+			return
+		}
+
+		for _, file := range files {
+			if file.IsDir() {
+				items = append(items, map[string]interface{}{"Type": "directory", "Name": file.Name()})
+			} else {
+				items = append(items, map[string]interface{}{"Type": "file", "Name": file.Name()})
+			}
+		}
+
+		c.JSON(http.StatusOK, items)
+	} else {
+		c.JSON(http.StatusForbidden, "Forbidden")
 	}
 }

@@ -17,7 +17,7 @@ func ConfigureRoutes(server *Server) {
 	router.GET("/logout", routes.GetLogout)
 
 	//Routes for app
-	app := router.Group("/app", auth.JWTMiddleware.MiddlewareFunc())
+	app := router.Group("/drive", auth.JWTMiddleware.MiddlewareFunc())
 	app.GET("/", routes.NebuloGoApp)
 
 	router.NoRoute(auth.JWTMiddleware.MiddlewareFunc(), auth.HandleNoRoute())
@@ -26,7 +26,8 @@ func ConfigureRoutes(server *Server) {
 	router.POST("/api/v1/auth/login", auth.JWTMiddleware.LoginHandler)
 	authorization := router.Group("/api/v1/auth", auth.JWTMiddleware.MiddlewareFunc())
 	authorization.GET("/refresh_token", auth.JWTMiddleware.RefreshHandler)
-	authApi := router.Group("/api/v1/", auth.JWTMiddleware.MiddlewareFunc())
-	authApi.GET("/download/:userID/:filename", routes.DownloadFile)
-	authApi.POST("/upload/:userID", routes.UploadFile)
+	filesApi := router.Group("/api/v1/files", auth.JWTMiddleware.MiddlewareFunc())
+	filesApi.GET("/content", routes.Content)
+	filesApi.GET("/download", routes.DownloadFile)
+	filesApi.POST("/upload", routes.UploadFile)
 }

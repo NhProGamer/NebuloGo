@@ -35,6 +35,9 @@
         params.append('password', document.getElementById('password').value);
         axios.post('/api/v1/auth/login?' + params.toString()).then(function(response) {
           showToast("User logged in")
+            setTimeout(() => {
+                window.location.replace("/drive");
+            }, 3000);
         }).catch(function(error) {
           showToast("Error: " + error.response.data.message)
         });

@@ -59,34 +59,72 @@
     <!-- <li><a href="#contact">Logs</a></li> -->
     <!-- <li style="float:right"><a href="#profile">Profile</a></li> -->
 </ul>
-<div class="files"><ul>
-    {{range .Items}}
+<div class="files" id="files"><ul>
+    <div id="filePlaceholder"></div>
+    <!--{{range .Items}}
     {{if eq .Type "file"}}
     {{template "file.html" .}}
     {{else if eq .Type "directory"}}
     {{template "directory.html" .}}
     {{end}}
-    {{end}}
+    {{end}}-->
 </ul>
 <div id="uploadBox" class="dropzone"></div>
 </div>
-
-<script>
-    Dropzone.autoDiscover = false;
+<script defer>
+    let ActualPath = "{{.ActualPath}}";
+    let UserId = "{{.UserId}}"
+    /*Dropzone.autoDiscover = false;
     let myDropzone = new Dropzone("div#uploadBox", {
-        url: "/api/v1/upload/{{.UserId}}",
+        url: "/api/v1/files/upload?UserId=" + UserId + "&" + "path=" + ActualPath,
         init: function () {
+            this.on("processing", function(file) {
+                this.options.url = "/api/v1/files/upload?UserId=" + UserId + "&" + "path=" + ActualPath;
+            });
             this.on("success", function (file, response) {
-                // Action à effectuer après le succès du téléchargement
-                location.reload();
-
-                // Vous pouvez ajouter d'autres actions ici, par exemple :
-                // - Mettre à jour une liste de fichiers
-                // - Rediriger vers une autre page
-                // - Afficher un message de confirmation
+                loadFolderContent()
             });
         }
+    });*/
+
+    function changeFolder(folderId) {
+        ActualPath += "" + folderId + "/"
+        console.log(ActualPath)
+        // Modifier l'URL sans recharger la page
+        history.pushState({ path: ActualPath }, null, '?path=' + ActualPath);
+
+        // Charger les nouvelles données de manière dynamique
+        loadFolderContent();
+    }
+    function loadFolderContent() {
+        fetch("/api/v1/files/content?" + "userId=" + UserId + "&" + "path=" + ActualPath, {
+            method: 'GET',
+            credentials: 'include'
+        })
+            .then(response => response.json())
+            .then(data => {
+                // Mettre à jour l'interface avec les nouvelles données du dossier
+                document.getElementById('filePlaceholder').innerHTML = renderFolderContent(data);
+            });
+    }
+
+    function renderFolderContent(data) {
+        // Générer le HTML des fichiers et sous-dossiers ici
+        return data.map(item => {
+            if (item.Type === 'file') {
+                return `<div class="item"><i class='bx bx-file'></i> <a href="/api/v1/files/download?userId=${UserId}&path=${ActualPath}&filename=${item.Name}">${item.Name}</a></div>`;
+
+            } else if (item.Type === 'directory') {
+                return `<div class="item" onclick="changeFolder('${item.Name}')"><i class='bx bx-folder'></i> ${item.Name}</div>`;
+            }
+        }).join('');
+    }
+    window.addEventListener('popstate', (event) => {
+        ActualPath = (event.state && event.state.path !== null) ? event.state.path : "";
+        loadFolderContent()
     });
+    loadFolderContent()
+
 </script>
 </body>
 </html>
