@@ -57,6 +57,64 @@ func UploadFile(c *gin.Context) {
 	}
 }
 
+func DeleteFile(c *gin.Context) {
+	requestedUserID := c.DefaultQuery("userId", "")
+	path := c.DefaultQuery("path", "")
+	actualName := c.DefaultQuery("actualName", "")
+	claims := jwt.ExtractClaims(c)
+
+	if claims["user_id"].(string) != requestedUserID {
+		c.JSON(http.StatusForbidden, "Forbidden")
+		return
+	}
+	// Build file path
+	filePath := filepath.Join("storage", claims["user_id"].(string), path, actualName)
+
+	// Check if file exists
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, "Not Found")
+		return
+	}
+
+	err := os.Remove(filePath) // specify the file path
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, "")
+	} else {
+		c.JSON(http.StatusOK, "")
+	}
+
+}
+
+func RenameFile(c *gin.Context) {
+	requestedUserID := c.DefaultQuery("userId", "")
+	path := c.DefaultQuery("path", "")
+	newName := c.DefaultQuery("newName", "")
+	actualName := c.DefaultQuery("actualName", "")
+	claims := jwt.ExtractClaims(c)
+
+	if claims["user_id"].(string) != requestedUserID {
+		c.JSON(http.StatusForbidden, "Forbidden")
+		return
+	}
+	// Build file path
+	actualFilePath := filepath.Join("storage", claims["user_id"].(string), path, actualName)
+	newFilePath := filepath.Join("storage", claims["user_id"].(string), path, newName)
+
+	// Check if file exists
+	if _, err := os.Stat(actualFilePath); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, "Not Found")
+		return
+	}
+
+	err := os.Rename(actualFilePath, newFilePath) // specify the file path
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, "")
+	} else {
+		c.JSON(http.StatusOK, "")
+	}
+
+}
+
 func Content(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	requestedUserID := c.DefaultQuery("userId", "")

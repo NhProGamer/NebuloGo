@@ -28,6 +28,8 @@ func ConfigureRoutes(server *Server) {
 	authorization.GET("/refresh_token", auth.JWTMiddleware.RefreshHandler)
 	filesApi := router.Group("/api/v1/files", auth.JWTMiddleware.MiddlewareFunc())
 	filesApi.GET("/content", routes.Content)
-	filesApi.GET("/download", routes.DownloadFile)
-	filesApi.POST("/upload", routes.UploadFile)
+	filesApi.GET("/", routes.DownloadFile)
+	filesApi.POST("/", routes.UploadFile)
+	filesApi.PATCH("/", routes.RenameFile)
+	filesApi.DELETE("/", routes.DeleteFile)
 }

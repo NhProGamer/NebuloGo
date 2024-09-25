@@ -6,9 +6,10 @@
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
-        body {
+        html, body {
             font-family: Arial, Helvetica, sans-serif;
             background-color: #f5f5f5;
+            margin: 0;
         }
         ul {
             list-style-type: none;
@@ -16,7 +17,7 @@
             padding: 0;
             overflow: hidden;
             background-color: #333;
-            border-radius: 15px 15px 0 0;
+            /*border-radius: 15px 15px 0 0;*/
         }
 
         li {
@@ -39,7 +40,6 @@
         .files {
             width: 100%;
             height: 100%;
-            max-height: 100%;
             background-color: #ccd0da; /* Just for visibility */
         }
         .files ul {
@@ -48,6 +48,34 @@
         .item {
             background-color: #bcc0cc;
             margin: 5px 5px 5px 5px;
+        }
+
+        .container {
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .custom-menu {
+            display: none;
+            position: absolute;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            /* Ajoute cette règle pour forcer une largeur fixe */
+            width: 150px;
+            border-radius: 5px;
+        }
+
+        .custom-menu button{
+            padding: 5px;
+            margin: 5px;
+            display: flex;
+            width: 140px;
+            flex-direction: column; /* Forcer l'affichage vertical */
         }
     </style>
 </head>
@@ -69,16 +97,25 @@
 </ul>
 </div>
 <div id="progressContainer" class="progressContainer"></div>
+<div class="custom-menu" id="custom-menu">
+    <button onclick="renameFile()">Renommer</button>
+    <button onclick="deleteFile()">Supprimer</button>
+    <button>Partager</button>
+</div>
+
+
 <script defer>
     let ActualPath = "{{.ActualPath}}";
     let UserId = "{{.UserId}}"
+    let SelectedItem = new Map();
+    SelectedItem.set('Name', "");
+    SelectedItem.set('Type', "");
     const MAX_PARALLEL_UPLOADS = 3;
 
     // ---------------------- BROWSING FILES ----------------------
 
     function changeFolder(folderId) {
         ActualPath += "" + folderId + "/"
-        console.log(ActualPath)
         // Modifier l'URL sans recharger la page
         history.pushState({ path: ActualPath }, null, '?path=' + ActualPath);
 
@@ -101,10 +138,10 @@
         // Générer le HTML des fichiers et sous-dossiers ici
         return data.map(item => {
             if (item.Type === 'file') {
-                return `<div class="item"><i class='bx bx-file'></i> <a href="/api/v1/files/download?userId=${UserId}&path=${ActualPath}&filename=${item.Name}">${item.Name}</a></div>`;
+                return `<div class="item" data-info="${item.Name}" data-type="${item.Type}"><i class='bx bx-file'></i> <a href="/api/v1/files?userId=${UserId}&path=${ActualPath}&filename=${item.Name}">${item.Name}</a></div>`;
 
             } else if (item.Type === 'directory') {
-                return `<div class="item" onclick="changeFolder('${item.Name}')"><i class='bx bx-folder'></i> ${item.Name}</div>`;
+                return `<div class="item" data-info="${item.Name}" data-type="${item.Type}" onclick="changeFolder('${item.Name}')"><i class='bx bx-folder'></i> ${item.Name}</div>`;
             }
         }).join('');
     }
@@ -191,7 +228,7 @@
             const formData = new FormData();
             formData.append('file', file);
 
-            axios.post("/api/v1/files/upload?UserId=" + UserId + "&" + "path=" + ActualPath, formData, {
+            axios.post("/api/v1/files?UserId=" + UserId + "&" + "path=" + ActualPath, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 },
@@ -219,7 +256,53 @@
         // Démarrer le premier ensemble d'uploads
         startUpload();
     }
+
+    function deleteFile() {
+        fetch("/api/v1/files?" + "userId=" + UserId + "&" + "path=" + ActualPath + "&" + "actualName=" + SelectedItem.get('Name'), {
+            method: 'DELETE',
+            credentials: 'include'
+        })
+            .then(_ => {
+                loadFolderContent()
+            });
+    }
+
+    function renameFile() {
+        let newName = "HEHEHEHA"
+        fetch("/api/v1/files?" + "userId=" + UserId + "&" + "path=" + ActualPath + "&" + "actualName=" + SelectedItem.get('Name') + "&" + "newName=" + newName, {
+            method: 'PATCH',
+            credentials: 'include'
+        })
+            .then(_ => {
+                loadFolderContent()
+            });
+    }
     loadFolderContent()
+
+    document.addEventListener('contextmenu', function (e) {
+        const menu = document.getElementById('custom-menu');
+
+        const clickedElement = e.target.closest('.item');
+        if (clickedElement) {
+            e.preventDefault();
+            menu.style.top = `${e.clientY}px`;
+            menu.style.left = `${e.clientX}px`;
+            menu.style.display = 'block';
+
+            const name = clickedElement.getAttribute('data-info');
+            const type = clickedElement.getAttribute('data-type');
+            SelectedItem.set('Name', name);
+            SelectedItem.set('Type', type);
+            //console.log(type + " | " + name);
+        }
+    });
+
+    document.addEventListener('click', function () {
+        const menu = document.getElementById('custom-menu');
+        menu.style.display = 'none';  // Cacher le menu personnalisé lorsque vous cliquez ailleurs
+        SelectedItem.set('Name', "");
+        SelectedItem.set('Type', "");
+    });
 </script>
 </body>
 </html>
