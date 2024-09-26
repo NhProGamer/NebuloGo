@@ -7,7 +7,33 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
+
+func accessManager(c *gin.Context, requestedUserID string) bool {
+	claims := jwt.ExtractClaims(c)
+	return claims["user_id"].(string) == requestedUserID
+}
+
+func isPathAllowed(baseDir, requestedPath string) bool {
+	// Nettoyer le chemin demandé
+	cleanedPath := filepath.Clean(requestedPath)
+
+	// Construire le chemin absolu basé sur le répertoire de base
+	absBaseDir, err := filepath.Abs(baseDir)
+	if err != nil {
+		return false
+	}
+
+	// Construire le chemin absolu pour le chemin demandé
+	absRequestedPath, err := filepath.Abs(filepath.Join(baseDir, cleanedPath))
+	if err != nil {
+		return false
+	}
+
+	// Vérifier que le chemin demandé commence bien par le répertoire de base
+	return strings.HasPrefix(absRequestedPath, absBaseDir)
+}
 
 func DownloadFile(c *gin.Context) {
 	requestedUserID := c.DefaultQuery("userId", "")
@@ -15,28 +41,31 @@ func DownloadFile(c *gin.Context) {
 	filename := c.DefaultQuery("filename", "")
 	claims := jwt.ExtractClaims(c)
 
-	if claims["user_id"].(string) != requestedUserID {
+	if accessManager(c, requestedUserID) {
+		userPath := filepath.Join("storage", claims["user_id"].(string))
+		filePath := filepath.Join(userPath, path, filename)
+		if !isPathAllowed(userPath, filePath) {
+			c.String(http.StatusForbidden, "Accès refusé")
+			return
+		}
+
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			c.JSON(http.StatusNotFound, "Not Found")
+			return
+		}
+
+		// Serve the file
+		c.Header("Content-Disposition", "attachment; filename="+filename)
+		c.File(filePath)
+
+	} else {
 		c.JSON(http.StatusForbidden, "Forbidden")
-		return
 	}
-	// Build file path
-	filePath := filepath.Join("storage", claims["user_id"].(string), path, filename)
-
-	// Check if file exists
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, "Not Found")
-		return
-	}
-
-	// Serve the file
-	c.Header("Content-Disposition", "attachment; filename="+filename)
-	c.File(filePath)
 }
 
 func UploadFile(c *gin.Context) {
 	requestedUserID := c.DefaultQuery("UserId", "")
 	path := c.DefaultQuery("path", "")
-	//filename := c.Param("filename")
 	claims := jwt.ExtractClaims(c)
 
 	if claims["user_id"].(string) != requestedUserID {
