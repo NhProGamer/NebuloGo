@@ -1,0 +1,71 @@
+html, body {
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+}
+ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #333;
+    /*border-radius: 15px 15px 0 0;*/
+}
+
+li {
+    float: left;
+}
+
+li a {
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+/* Change the link color to #111 (black) on hover */
+li a:hover {
+    background-color: #111;
+}
+
+.files {
+    width: 100%;
+    height: 100%;
+    background-color: #ccd0da; /* Just for visibility */
+}
+.files ul {
+    background-color: #ccd0da;
+}
+.item {
+    background-color: #bcc0cc;
+    margin: 5px 5px 5px 5px;
+}
+
+.container {
+    padding: 20px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.custom-menu {
+    display: none;
+    position: absolute;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    /* Ajoute cette règle pour forcer une largeur fixe */
+    width: 150px;
+    border-radius: 5px;
+}
+
+.custom-menu button{
+    padding: 5px;
+    margin: 5px;
+    display: flex;
+    width: 140px;
+    flex-direction: column; /* Forcer l'affichage vertical */
+}
