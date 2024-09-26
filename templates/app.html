@@ -27,6 +27,7 @@
 <div class="custom-menu" id="custom-menu">
     <button onclick="renameFile()" title="Rename file">Renommer</button>
     <button onclick="deleteFile()" title="Delete file">Supprimer</button>
+    <button onclick="createFolder()" title="Create new folder">Create new folder</button>
     <button title="Share file">Partager</button>
 </div>
 
@@ -60,6 +61,9 @@
 
     // Generate folder and file HTML
     function renderFolderContent(data) {
+        if (!data || data.length === 0) {
+            return 'Dossier vide';  // Ne rien faire si data est vide
+        }
         return data.map(item => {
             if (item.Type === 'file') {
                 return `
@@ -137,7 +141,7 @@
             const formData = new FormData();
             formData.append('file', file);
 
-            axios.post(`/api/v1/files?UserId=${UserId}&path=${ActualPath}`, formData, {
+            axios.post(`/api/v1/files?UserId=${UserId}&path=${ActualPath}&filename=${file.name}`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 withCredentials: true,
                 onUploadProgress: progressEvent => {
@@ -189,23 +193,44 @@
     // ---------------------- FILE OPERATIONS ----------------------
 
     function deleteFile() {
-        fetch(`/api/v1/files?userId=${UserId}&path=${ActualPath}&actualName=${SelectedItem.get('Name')}`, {
-            method: 'DELETE',
-            credentials: 'include'
-        })
-            .then(() => loadFolderContent())
-            .catch(error => console.error('Error deleting file:', error));
+        if (SelectedItem.get("Type") === "file") {
+            fetch(`/api/v1/files?userId=${UserId}&path=${ActualPath}&filename=${SelectedItem.get('Name')}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            })
+                .then(() => loadFolderContent())
+                .catch(error => console.error('Error deleting file:', error));
+        } else {
+            fetch(`/api/v1/files/folder?userId=${UserId}&path=${ActualPath}&folderName=${SelectedItem.get('Name')}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            })
+                .then(() => loadFolderContent())
+                .catch(error => console.error('Error deleting file:', error));
+        }
     }
 
     function renameFile() {
         let newName = prompt("Enter new name:", SelectedItem.get('Name'));
         if (newName) {
-            fetch(`/api/v1/files?userId=${UserId}&path=${ActualPath}&actualName=${SelectedItem.get('Name')}&newName=${newName}`, {
+            fetch(`/api/v1/files?userId=${UserId}&path=${ActualPath}&filename=${SelectedItem.get('Name')}&newName=${newName}`, {
                 method: 'PATCH',
                 credentials: 'include'
             })
                 .then(() => loadFolderContent())
                 .catch(error => console.error('Error renaming file:', error));
+        }
+    }
+
+    function createFolder() {
+        let folderName = prompt("Enter name:");
+        if (folderName) {
+            fetch(`/api/v1/files/folder?userId=${UserId}&path=${ActualPath}&folderName=${folderName}`, {
+                method: 'POST',
+                credentials: 'include'
+            })
+                .then(() => loadFolderContent())
+                .catch(error => console.error('Error creating folder:', error));
         }
     }
 

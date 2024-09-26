@@ -19,14 +19,14 @@ func isPathAllowed(baseDir, requestedPath string) bool {
 	// Nettoyer le chemin demandé
 	cleanedPath := filepath.Clean(requestedPath)
 
-	// Construire le chemin absolu basé sur le répertoire de base
-	absBaseDir, err := filepath.Abs(baseDir)
+	// Construire le chemin absolu pour le chemin demandé
+	absRequestedPath, err := filepath.Abs(cleanedPath)
 	if err != nil {
 		return false
 	}
 
-	// Construire le chemin absolu pour le chemin demandé
-	absRequestedPath, err := filepath.Abs(filepath.Join(baseDir, cleanedPath))
+	// Construire le chemin absolu basé sur le répertoire de base
+	absBaseDir, err := filepath.Abs(baseDir)
 	if err != nil {
 		return false
 	}
@@ -66,92 +66,165 @@ func DownloadFile(c *gin.Context) {
 func UploadFile(c *gin.Context) {
 	requestedUserID := c.DefaultQuery("UserId", "")
 	path := c.DefaultQuery("path", "")
+	filename := c.DefaultQuery("filename", "")
 	claims := jwt.ExtractClaims(c)
 
-	if claims["user_id"].(string) != requestedUserID {
-		c.JSON(http.StatusForbidden, "Forbidden")
-		return
-	}
+	if accessManager(c, requestedUserID) {
+		userPath := filepath.Join("storage", claims["user_id"].(string))
+		filePath := filepath.Join(userPath, path, filename)
+		if !isPathAllowed(userPath, filePath) {
+			c.String(http.StatusForbidden, "Accès refusé")
+			return
+		}
+		file, err := c.FormFile("file")
+		if err != nil {
+			c.String(400, "Failed to get file: %s", err.Error())
+			return
+		}
+		if err := c.SaveUploadedFile(file, filePath); err != nil {
+			c.String(500, "Failed to save file: %s", err.Error())
+			return
+		}
 
-	file, err := c.FormFile("file")
-	if err != nil {
-		c.String(400, "Failed to get file: %s", err.Error())
-		return
-	}
-	savePath := filepath.Join("storage", claims["user_id"].(string), path, file.Filename)
-
-	if err := c.SaveUploadedFile(file, savePath); err != nil {
-		c.String(500, "Failed to save file: %s", err.Error())
-		return
 	}
 }
 
 func DeleteFile(c *gin.Context) {
 	requestedUserID := c.DefaultQuery("userId", "")
 	path := c.DefaultQuery("path", "")
-	actualName := c.DefaultQuery("actualName", "")
+	filename := c.DefaultQuery("filename", "")
 	claims := jwt.ExtractClaims(c)
 
-	if claims["user_id"].(string) != requestedUserID {
-		c.JSON(http.StatusForbidden, "Forbidden")
-		return
-	}
-	// Build file path
-	filePath := filepath.Join("storage", claims["user_id"].(string), path, actualName)
+	if accessManager(c, requestedUserID) {
+		userPath := filepath.Join("storage", claims["user_id"].(string))
+		filePath := filepath.Join(userPath, path, filename)
+		if !isPathAllowed(userPath, filePath) {
+			c.String(http.StatusForbidden, "Accès refusé")
+			return
+		}
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			c.JSON(http.StatusNotFound, "Not Found")
+			return
+		}
+		err := os.Remove(filePath) // specify the file path
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, "")
+		} else {
+			c.JSON(http.StatusOK, "")
+		}
 
-	// Check if file exists
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, "Not Found")
-		return
-	}
-
-	err := os.Remove(filePath) // specify the file path
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, "")
 	} else {
-		c.JSON(http.StatusOK, "")
+		c.JSON(http.StatusForbidden, "Forbidden")
 	}
-
 }
 
-func RenameFile(c *gin.Context) {
+func MoveFile(c *gin.Context) {
 	requestedUserID := c.DefaultQuery("userId", "")
 	path := c.DefaultQuery("path", "")
-	newName := c.DefaultQuery("newName", "")
-	actualName := c.DefaultQuery("actualName", "")
+	newpath := c.DefaultQuery("newpath", "")
+	filename := c.DefaultQuery("filename", "")
+	newFilename := c.DefaultQuery("newName", "")
 	claims := jwt.ExtractClaims(c)
 
-	if claims["user_id"].(string) != requestedUserID {
-		c.JSON(http.StatusForbidden, "Forbidden")
-		return
-	}
-	// Build file path
-	actualFilePath := filepath.Join("storage", claims["user_id"].(string), path, actualName)
-	newFilePath := filepath.Join("storage", claims["user_id"].(string), path, newName)
+	if accessManager(c, requestedUserID) {
+		userPath := filepath.Join("storage", claims["user_id"].(string))
+		filePath := filepath.Join(userPath, path, filename)
+		newFilePath := ""
+		if newpath == "" {
+			newFilePath = filepath.Join(userPath, path, newFilename)
+		} else {
+			newFilePath = filepath.Join(userPath, newpath, newFilename)
+		}
+		if !isPathAllowed(userPath, filePath) {
+			c.String(http.StatusForbidden, "Accès refusé")
+			return
+		}
+		if !isPathAllowed(userPath, newFilePath) {
+			c.String(http.StatusForbidden, "Accès refusé")
+			return
+		}
 
-	// Check if file exists
-	if _, err := os.Stat(actualFilePath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, "Not Found")
-		return
-	}
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			c.JSON(http.StatusNotFound, "Not Found")
+			return
+		}
+		err := os.Rename(filePath, newFilePath)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, "")
+		} else {
+			c.JSON(http.StatusOK, "")
+		}
 
-	err := os.Rename(actualFilePath, newFilePath) // specify the file path
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, "")
 	} else {
-		c.JSON(http.StatusOK, "")
+		c.JSON(http.StatusForbidden, "Forbidden")
 	}
+}
 
+func CreateFolder(c *gin.Context) {
+	requestedUserID := c.DefaultQuery("userId", "")
+	path := c.DefaultQuery("path", "")
+	folderName := c.DefaultQuery("folderName", "")
+	claims := jwt.ExtractClaims(c)
+
+	if accessManager(c, requestedUserID) {
+		userPath := filepath.Join("storage", claims["user_id"].(string))
+		folderPath := filepath.Join(userPath, path, folderName)
+		if !isPathAllowed(userPath, folderPath) {
+			c.String(http.StatusForbidden, "Accès refusé")
+			return
+		}
+		err := os.Mkdir(folderPath, 755)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, "")
+		} else {
+			c.JSON(http.StatusOK, "")
+		}
+	}
+}
+
+func DeleteFolder(c *gin.Context) {
+	requestedUserID := c.DefaultQuery("userId", "")
+	path := c.DefaultQuery("path", "")
+	folderName := c.DefaultQuery("folderName", "")
+	claims := jwt.ExtractClaims(c)
+
+	if accessManager(c, requestedUserID) {
+		userPath := filepath.Join("storage", claims["user_id"].(string))
+		folderPath := filepath.Join(userPath, path, folderName)
+		if !isPathAllowed(userPath, folderPath) {
+			c.String(http.StatusForbidden, "Accès refusé")
+			return
+		}
+		if _, err := os.Stat(folderPath); os.IsNotExist(err) {
+			c.JSON(http.StatusNotFound, "Not Found")
+			return
+		}
+		err := os.RemoveAll(folderPath) // specify the file path
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
+		} else {
+			c.JSON(http.StatusOK, "Ok")
+		}
+
+	} else {
+		c.JSON(http.StatusForbidden, "Forbidden")
+	}
 }
 
 func Content(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	requestedUserID := c.DefaultQuery("userId", "")
 	path := c.DefaultQuery("path", "")
+	userPath := filepath.Join("storage", claims["user_id"].(string))
+	requestedPath := filepath.Join(userPath, path)
 
-	if claims["user_id"].(string) == requestedUserID {
+	if accessManager(c, requestedUserID) {
+		if !isPathAllowed(userPath, requestedPath) {
+			c.String(http.StatusForbidden, "Accès refusé")
+			return
+		}
 		var items []interface{}
-		files, err := os.ReadDir("./storage/" + requestedUserID + "/" + path)
+		files, err := os.ReadDir(requestedPath)
 		if err != nil {
 			log.Println(err)
 			c.JSON(http.StatusNotFound, "Not Found")

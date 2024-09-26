@@ -30,6 +30,8 @@ func ConfigureRoutes(server *Server) {
 	filesApi.GET("/content", routes.Content)
 	filesApi.GET("/", routes.DownloadFile)
 	filesApi.POST("/", routes.UploadFile)
-	filesApi.PATCH("/", routes.RenameFile)
+	filesApi.PATCH("/", routes.MoveFile)
 	filesApi.DELETE("/", routes.DeleteFile)
+	filesApi.POST("/folder", routes.CreateFolder)
+	filesApi.DELETE("/folder", routes.DeleteFolder)
 }
