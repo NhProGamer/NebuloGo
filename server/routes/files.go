@@ -173,7 +173,7 @@ func CreateFolder(c *gin.Context) {
 			c.String(http.StatusForbidden, "Accès refusé")
 			return
 		}
-		err := os.Mkdir(folderPath, 755)
+		err := os.Mkdir(folderPath, 0777)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, "")
 		} else {
@@ -224,6 +224,7 @@ func Content(c *gin.Context) {
 			return
 		}
 		var items []interface{}
+		log.Println(requestedPath)
 		files, err := os.ReadDir(requestedPath)
 		if err != nil {
 			log.Println(err)

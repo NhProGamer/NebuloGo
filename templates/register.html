@@ -3,57 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="stylesheet" href="/static/css/index.css">
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <title>Gestionnaire de fichiers</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Style pour le menu contextuel */
+        .custom-context-menu {
+            display: none;
+            position: absolute;
+            background-color: white;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            z-index: 1000;
+            padding: 10px;
+        }
+        .custom-context-menu button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 8px 12px;
+            font-size: 14px;
+            color: black;
+        }
+        .custom-context-menu button:hover {
+            background-color: #f3f4f6; /* hover effect */
+        }
+    </style>
 </head>
-<body>
-<div id="toast"></div>
-<div class="form-container">
-    <form id="updateForm">
-        <label for="username">Username:</label>
-        <input type="text" name="username" id="username" pattern="[a-zA-Z0-9._]+" value="" required>
-        <div style="display: flex">
-            <div style="display: block; margin-right: 10px">
-                <label for="firstname">First Name:</label>
-                <input type="text" name="firstname" id="firstname" pattern="[a-zA-Z0-9-]+" value="" required>
-            </div>
-            <div style="display: block; margin-left: 10px">
-                <label for="lastname">Last Name:</label>
-                <input type="text" name="lastname" id="lastname" pattern="[a-zA-Z0-9-]+" value="" required>
-            </div>
+<body class="bg-gray-100 h-screen flex flex-col">
+<!-- Barre de navigation (fixe) -->
+<nav class="bg-blue-500 text-white p-4 shadow-md fixed top-0 left-0 right-0 z-10">
+    <div class="container mx-auto flex justify-between">
+        <h1 class="text-xl font-semibold">NebuloGo Files</h1>
+        <div class="flex space-x-4">
+            <a href="#" class="hover:text-gray-200">Home</a>
+            <a href="#" class="hover:text-gray-200">Settings</a>
+            <a href="#" class="hover:text-gray-200">Logout</a>
         </div>
-        <label for="password">Password:</label>
-        <input type="password" name="password" id="password" value="" required>
-        <button type="submit" class="update">Register</button>
-    </form>
+    </div>
+</nav>
+
+<!-- Liste des fichiers (scrollable) -->
+<main class="flex-grow overflow-y-auto mt-16">
+    <div class="container mx-auto py-6">
+        <ul class="space-y-4">
+            <!-- Exemple de fichier ou dossier -->
+            <li class="bg-white p-4 rounded-lg shadow-md flex items-center justify-between context-menu-target">
+                <div class="flex items-center">
+                    <svg class="w-8 h-8 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                         xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round"
+                                                                  stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7H3z"/><path stroke-linecap="round"
+                                                                                                                                      stroke-linejoin="round" stroke-width="2" d="M5 9h14a2 2 0 002-2H3a2 2 0 002 2z"/></svg>
+                    <p class="text-sm font-semibold">Dossier 1</p>
+                </div>
+                <span class="text-sm text-gray-500">Modifié le 01/09/2024</span>
+            </li>
+
+            <li class="bg-white p-4 rounded-lg shadow-md flex items-center justify-between context-menu-target">
+                <div class="flex items-center">
+                    <svg class="w-8 h-8 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                         xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round"
+                                                                  stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7H3z"/><path stroke-linecap="round"
+                                                                                                                                      stroke-linejoin="round" stroke-width="2" d="M5 9h14a2 2 0 002-2H3a2 2 0 002 2z"/></svg>
+                    <p class="text-sm font-semibold">Fichier 1</p>
+                </div>
+                <span class="text-sm text-gray-500">Modifié le 03/09/2024</span>
+            </li>
+
+            <!-- Ajouter plus de fichiers/dossiers ici -->
+        </ul>
+    </div>
+</main>
+
+<!-- Menu contextuel personnalisé -->
+<div id="contextMenu" class="custom-context-menu">
+    <button id="rename">Renommer</button>
+    <button id="delete">Supprimer</button>
+    <button id="share">Partager</button>
+    <button id="newFolder">Nouveau dossier</button>
 </div>
+
 <script>
-    document.getElementById('updateForm').addEventListener('submit', function(event) {
-        event.preventDefault(); // Prevent the default form submission
-        // Send PATCH request using Axios (or XMLHttpRequest)
-        const params = new URLSearchParams();
-        params.append('username', document.getElementById('username').value);
-        params.append('password', document.getElementById('password').value);
-        axios.post('/api/v1/auth/register?' + params.toString()).then(function(response) {
-            console.log('Response:', response.data);
-            showToast("User logged in")
-            //alert('PATCH request successful');
-        }).catch(function(error) {
-            console.error('Error:', error);
-            showToast("Error: " + error.response.data)
-        });
+    // Variables pour gérer le menu contextuel
+    const contextMenu = document.getElementById('contextMenu');
+    let targetElement = null;
+
+    // Fonction pour afficher le menu contextuel
+    document.addEventListener('contextmenu', function (e) {
+        // Si le clic droit est effectué sur un fichier
+        if (e.target.closest('.context-menu-target')) {
+            e.preventDefault();
+            targetElement = e.target.closest('.context-menu-target');
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = `${e.pageX}px`;
+            contextMenu.style.top = `${e.pageY}px`;
+        } else {
+            contextMenu.style.display = 'none'; // Cacher si clic droit en dehors
+        }
     });
 
-    function showToast(message) {
-        const toast = document.getElementById("toast");
-        toast.innerText = message;
-        toast.className = "show";
-        setTimeout(() => {
-            toast.className = toast.className.replace("show", "");
-        }, 8000);
-    }
+    // Fonction pour cacher le menu contextuel quand on clique ailleurs
+    document.addEventListener('click', function () {
+        contextMenu.style.display = 'none';
+    });
+
+    // Boutons dans le menu contextuel
+    document.getElementById('rename').addEventListener('click', function () {
+        console.log('Renommer', targetElement);
+        // Implémente la logique pour renommer ici
+    });
+
+    document.getElementById('delete').addEventListener('click', function () {
+        console.log('Supprimer', targetElement);
+        // Implémente la logique pour supprimer ici
+    });
+
+    document.getElementById('share').addEventListener('click', function () {
+        console.log('Partager', targetElement);
+        // Implémente la logique pour partager ici
+    });
+
+    document.getElementById('newFolder').addEventListener('click', function () {
+        console.log('Nouveau dossier');
+        // Implémente la logique pour créer un nouveau dossier ici
+    });
 </script>
 </body>
 </html>

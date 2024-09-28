@@ -1,34 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NebuloGo</title>
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <title>Gestionnaire de fichiers</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <link rel="stylesheet" href="/static/css/app.css">
+    <style>
+        /* Style pour le menu contextuel */
+        .custom-context-menu {
+            display: none;
+            position: absolute;
+            background-color: white;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            z-index: 1000;
+            padding: 10px;
+        }
+
+        .custom-context-menu button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 8px 12px;
+            font-size: 14px;
+            color: black;
+        }
+
+        .custom-context-menu button:hover {
+            background-color: #f3f4f6;
+        }
+
+        /* Style pour le panneau rétractable d'uploads */
+        #uploadMenu {
+            position: fixed;
+            right: 0;
+            top: 50px;
+            width: 300px;
+            background-color: white;
+            border-left: 1px solid #ccc;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        #uploadMenu.show {
+            transform: translateX(0);
+        }
+
+        #uploadMenu h3 {
+            background-color: #f3f4f6;
+            padding: 12px;
+            font-size: 16px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #uploadMenu .upload-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        #uploadMenu .upload-item {
+            background-color: #f9f9f9;
+            margin-bottom: 8px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        #uploadMenu .upload-item p {
+            margin: 0;
+        }
+
+        #uploadMenu .progress-bar {
+            height: 5px;
+            background-color: #4caf50;
+            margin-top: 5px;
+        }
+    </style>
 </head>
+<body class="bg-gray-100 h-screen flex flex-col">
+<!-- Barre de navigation (fixe) -->
+<nav class="bg-blue-500 text-white p-4 shadow-md fixed top-0 left-0 right-0 z-10">
+    <div class="container mx-auto flex justify-between">
+        <h1 class="text-xl font-semibold">NebuloGo Files</h1>
+        <div class="flex space-x-4">
+            <a href="#" class="hover:text-gray-200">Home</a>
+            <a href="#" class="hover:text-gray-200">Settings</a>
+            <a href="#" class="hover:text-gray-200">Logout</a>
+        </div>
+    </div>
+</nav>
 
-<body>
-<ul>
-    <li><a href="#files">Files</a></li>
-</ul>
+<!-- Liste des fichiers (scrollable) -->
+<main class="flex-grow overflow-y-auto mt-16">
+    <div class="container mx-auto py-6" id="file-container">
+        <ul class="space-y-4" id="filePlaceholder">
+        </ul>
+    </div>
+</main>
 
-<div class="files" id="files">
-    <ul>
-        <div id="filePlaceholder"></div>
-    </ul>
+<!-- Menu contextuel personnalisé -->
+<div id="contextMenu" class="custom-context-menu">
+    <button id="rename" onclick="renameFile()">Renommer</button>
+    <button id="delete" onclick="deleteFile()">Supprimer</button>
+    <button id="share">Partager</button>
+    <button id="newFolder" onclick="createFolder()">Nouveau dossier</button>
 </div>
 
-<div id="progressContainer" class="progressContainer"></div>
-
-<!-- Custom context menu -->
-<div class="custom-menu" id="custom-menu">
-    <button onclick="renameFile()" title="Rename file">Renommer</button>
-    <button onclick="deleteFile()" title="Delete file">Supprimer</button>
-    <button onclick="createFolder()" title="Create new folder">Create new folder</button>
-    <button title="Share file">Partager</button>
+<!-- Panneau rétractable pour les uploads -->
+<div id="uploadMenu">
+    <h3>Upload en cours</h3>
+    <div class="upload-list" id="uploadList"></div>
 </div>
 
 <script defer>
@@ -54,6 +139,7 @@
         })
             .then(response => response.json())
             .then(data => {
+                console.log(data)
                 document.getElementById('filePlaceholder').innerHTML = renderFolderContent(data);
             })
             .catch(error => console.error('Error loading content:', error));
@@ -66,16 +152,30 @@
         }
         return data.map(item => {
             if (item.Type === 'file') {
+                //<a href="/api/v1/files?userId=${UserId}&path=${ActualPath}&filename=${item.Name}"
                 return `
-                    <div class="item" data-info="${item.Name}" data-type="file">
-                        <i class='bx bx-file'></i>
-                        <a href="/api/v1/files?userId=${UserId}&path=${ActualPath}&filename=${item.Name}" title="${item.Name}">${item.Name}</a>
-                    </div>`;
+                <li class="bg-white p-4 rounded-lg shadow-md flex items-center justify-between context-menu-target" data-info="${item.Name}" data-type="file">
+                <div class="flex items-center">
+                    <svg class="w-8 h-8 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                         xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round"
+                                                                  stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7H3z"/><path stroke-linecap="round"
+                                                                                                                                      stroke-linejoin="round" stroke-width="2" d="M5 9h14a2 2 0 002-2H3a2 2 0 002 2z"/></svg>
+                    <p class="text-sm font-semibold">${item.Name}</p>
+                </div>
+                <span class="text-sm text-gray-500">Modifié le XX/XX/XXXX</span>
+            </li>`;
             } else if (item.Type === 'directory') {
                 return `
-                    <div class="item" data-info="${item.Name}" data-type="directory" onclick="changeFolder('${item.Name}')">
-                        <i class='bx bx-folder'></i> ${item.Name}
-                    </div>`;
+                <li class="bg-white p-4 rounded-lg shadow-md flex items-center justify-between context-menu-target" data-info="${item.Name}" data-type="directory" onclick="changeFolder('${item.Name}')">
+                <div class="flex items-center">
+                    <svg class="w-8 h-8 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                         xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round"
+                                                                  stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7H3z"/><path stroke-linecap="round"
+                                                                                                                                      stroke-linejoin="round" stroke-width="2" d="M5 9h14a2 2 0 002-2H3a2 2 0 002 2z"/></svg>
+                    <p class="text-sm font-semibold">${item.Name}</p>
+                </div>
+                <span class="text-sm text-gray-500">Modifié le XX/XX/XXXX</span>
+            </li>`;
             }
         }).join('');
     }
@@ -88,8 +188,8 @@
 
     // ---------------------- UPLOAD FILES ----------------------
 
-    const dropZone = document.getElementById('files');
-    const progressContainer = document.getElementById('progressContainer');
+    const dropZone = document.getElementById('file-container');
+    const progressContainer = document.getElementById('uploadList');
 
     // Prevent default behavior for drag-and-drop events
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -104,90 +204,34 @@
         }
     });
 
-    // Upload files with parallel limit
-    function handleFiles(files) {
-        progressContainer.innerHTML = ''; // Clear existing progress bars
-        const queue = Array.from(files);
-        let activeUploads = 0;
-
-        function startUpload() {
-            while (activeUploads < MAX_PARALLEL_UPLOADS && queue.length > 0) {
-                const file = queue.shift();
-                uploadFile(file);
-            }
-        }
-
-        function uploadFile(file) {
-            activeUploads++;
-
-            // Create progress bar elements
-            const progressWrapper = document.createElement('div');
-            const progressBarContainer = document.createElement('div');
-            const progressBar = document.createElement('div');
-            const progressText = document.createElement('p');
-
-            progressWrapper.style.marginBottom = '10px';
-            progressBarContainer.style.width = '100%';
-            progressBarContainer.style.backgroundColor = '#f3f3f3';
-            progressBar.style.width = '0%';
-            progressBar.style.height = '20px';
-            progressBar.style.backgroundColor = '#4caf50';
-
-            progressBarContainer.appendChild(progressBar);
-            progressWrapper.appendChild(progressBarContainer);
-            progressWrapper.appendChild(progressText);
-            progressContainer.appendChild(progressWrapper);
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            axios.post(`/api/v1/files?UserId=${UserId}&path=${ActualPath}&filename=${file.name}`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-                withCredentials: true,
-                onUploadProgress: progressEvent => {
-                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                    progressBar.style.width = percentCompleted + '%';
-                    progressText.textContent = percentCompleted + '%';
-                }
-            })
-                .then(response => {
-                    console.log('Upload succeeded:', response.data);
-                    loadFolderContent();
-                })
-                .catch(error => {
-                    console.error('Upload failed:', error);
-                })
-                .finally(() => {
-                    activeUploads--;
-                    startUpload();
-                });
-        }
-
-        startUpload(); // Start the first set of uploads
-    }
-
     // ---------------------- CONTEXT MENU ----------------------
 
-    document.addEventListener('contextmenu', e => {
-        const menu = document.getElementById('custom-menu');
-        const clickedElement = e.target.closest('.item');
+    // Variables pour gérer le menu contextuel
+    const contextMenu = document.getElementById('contextMenu');
+    let targetElement = null;
+
+    // Fonction pour afficher le menu contextuel
+    document.addEventListener('contextmenu', function (e) {
+        // Si le clic droit est effectué sur un fichier
+        const clickedElement = e.target.closest('.context-menu-target');
         if (clickedElement) {
             e.preventDefault();
-            menu.style.top = `${e.clientY}px`;
-            menu.style.left = `${e.clientX}px`;
-            menu.style.display = 'block';
-
+            targetElement = e.target.closest('.context-menu-target');
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = `${e.pageX}px`;
+            contextMenu.style.top = `${e.pageY}px`;
             const name = clickedElement.getAttribute('data-info');
             const type = clickedElement.getAttribute('data-type');
             SelectedItem.set('Name', name);
             SelectedItem.set('Type', type);
+        } else {
+            contextMenu.style.display = 'none'; // Cacher si clic droit en dehors
         }
     });
 
-    document.addEventListener('click', () => {
-        document.getElementById('custom-menu').style.display = 'none';
-        SelectedItem.set('Name', "");
-        SelectedItem.set('Type', "");
+    // Fonction pour cacher le menu contextuel quand on clique ailleurs
+    document.addEventListener('click', function () {
+        contextMenu.style.display = 'none';
     });
 
     // ---------------------- FILE OPERATIONS ----------------------
