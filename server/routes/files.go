@@ -3,7 +3,6 @@ package routes
 import (
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -68,6 +67,7 @@ func UploadFile(c *gin.Context) {
 	path := c.DefaultQuery("path", "")
 	filename := c.DefaultQuery("filename", "")
 	claims := jwt.ExtractClaims(c)
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1024<<20)
 
 	if accessManager(c, requestedUserID) {
 		userPath := filepath.Join("storage", claims["user_id"].(string))
@@ -224,10 +224,8 @@ func Content(c *gin.Context) {
 			return
 		}
 		var items []interface{}
-		log.Println(requestedPath)
 		files, err := os.ReadDir(requestedPath)
 		if err != nil {
-			log.Println(err)
 			c.JSON(http.StatusNotFound, "Not Found")
 			return
 		}
