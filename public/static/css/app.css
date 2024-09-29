@@ -9,19 +9,6 @@
     padding: 10px;
 }
 
-.custom-context-menu button {
-    display: block;
-    width: 100%;
-    text-align: left;
-    padding: 8px 12px;
-    font-size: 14px;
-    color: black;
-}
-
-.custom-context-menu button:hover {
-    background-color: #f3f4f6;
-}
-
 /* Style pour le panneau rétractable d'uploads */
 #uploadMenu {
     position: fixed;
