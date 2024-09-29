@@ -1,56 +1,126 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
+<html lang="fr">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="stylesheet" href="/static/css/index.css">
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <title>Login - NebuloGo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  </head>
-  <body>
-    <div id="toast"></div>
-    <div class="form-container">
-      <form id="updateForm">
-          <label for="username">Username:</label>
-          <input type="text" name="username" id="username" pattern="[a-zA-Z0-9._]+" value="" required>
+    <style>
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            margin: 0 auto;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 30px;
+            font-size: 17px;
+        }
 
-          <label for="password">Password:</label>
-          <input type="password" name="password" id="password" value="" required>
+        #toast.show {
+            visibility: visible;
+            -webkit-animation: fadein 0.5s, fadeout 0.5s 7.6s;
+            animation: fadein 0.5s, fadeout 0.5s 7.6s;
+        }
 
-          <div style="display: flex;">
-            <input type="checkbox" name="remember" value="" id="remember" style="width: auto">
-            <b>Remember me ?</b>
-          </div>
+        @-webkit-keyframes fadein {
+            from {
+                top: 0;
+                opacity: 0;
+            }
+            to {
+                top: 30px;
+                opacity: 1;
+            }
+        }
 
-          <button type="submit" class="update">Login</button>
-      </form>
-    </div>
-    <script>
-      document.getElementById('updateForm').addEventListener('submit', function(event) {
+        @keyframes fadein {
+            from {
+                top: 0;
+                opacity: 0;
+            }
+            to {
+                top: 30px;
+                opacity: 1;
+            }
+        }
+
+        @-webkit-keyframes fadeout {
+            from {
+                top: 30px;
+                opacity: 1;
+            }
+            to {
+                top: 0;
+                opacity: 0;
+            }
+        }
+
+        @keyframes fadeout {
+            from {
+                top: 30px;
+                opacity: 1;
+            }
+            to {
+                top: 0;
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen flex items-center justify-center">
+<div id="toast"></div>
+<div class="bg-white rounded-lg shadow-md p-6 w-96">
+    <h1 class="text-2xl font-bold text-center mb-6">Connexion</h1>
+    <form id="loginForm">
+        <div class="mb-4">
+            <label for="username" class="block text-sm font-medium text-gray-700">Nom d'utilisateur</label>
+            <input type="text" id="username" name="username" pattern="[a-zA-Z0-9._]+" required
+                   class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-500" placeholder="Entrez votre nom d'utilisateur">
+        </div>
+        <div class="mb-6">
+            <label for="password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+            <input type="password" id="password" name="password" required
+                   class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-500" placeholder="Entrez votre mot de passe">
+        </div>
+        <button type="submit" class="w-full bg-blue-500 text-white font-semibold py-2 rounded-md hover:bg-blue-600">Se connecter</button>
+    </form>
+    <!--<p class="mt-4 text-center text-sm text-gray-600">
+        Pas de compte ? <a href="/register" class="text-blue-500 hover:underline">S'inscrire</a>
+    </p>-->
+</div>
+<script>
+    document.getElementById('loginForm').addEventListener('submit', function(event) {
         event.preventDefault(); // Prevent the default form submission
         // Send PATCH request using Axios (or XMLHttpRequest)
         const params = new URLSearchParams();
         params.append('username', document.getElementById('username').value);
         params.append('password', document.getElementById('password').value);
         axios.post('/api/v1/auth/login?' + params.toString()).then(function(response) {
-          showToast("User logged in")
+            showToast("User logged in")
             setTimeout(() => {
                 window.location.replace("/drive");
             }, 3000);
         }).catch(function(error) {
-          showToast("Error: " + error.response.data.message)
+            showToast("Error: " + error.response.data.message)
         });
-      });
+    });
 
-      function showToast(message) {
+    function showToast(message) {
         const toast = document.getElementById("toast");
         toast.innerText = message;
         toast.className = "show";
         setTimeout(() => {
-          toast.className = toast.className.replace("show", "");
+            toast.className = toast.className.replace("show", "");
         }, 8000);
-      }
-    </script>
-  </body>
+    }
+</script>
+</body>
 </html>

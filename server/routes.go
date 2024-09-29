@@ -7,6 +7,7 @@ import (
 
 func ConfigureRoutes(server *Server) {
 	router := server.Gin
+	router.MaxMultipartMemory = 512 << 20
 	//Serve html templates and static files
 	router.LoadHTMLGlob("templates/*")
 	router.Static("static", "public/static")

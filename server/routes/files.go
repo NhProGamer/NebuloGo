@@ -67,7 +67,7 @@ func UploadFile(c *gin.Context) {
 	path := c.DefaultQuery("path", "")
 	filename := c.DefaultQuery("filename", "")
 	claims := jwt.ExtractClaims(c)
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1024<<20)
+	//c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1024<<20)
 
 	if accessManager(c, requestedUserID) {
 		userPath := filepath.Join("storage", claims["user_id"].(string))
@@ -231,10 +231,14 @@ func Content(c *gin.Context) {
 		}
 
 		for _, file := range files {
+			fileInfo, err := file.Info()
+			if err != nil {
+				c.String(500, err.Error())
+			}
 			if file.IsDir() {
-				items = append(items, map[string]interface{}{"Type": "directory", "Name": file.Name()})
+				items = append(items, map[string]interface{}{"Type": "directory", "Name": file.Name(), "Time": fileInfo.ModTime()})
 			} else {
-				items = append(items, map[string]interface{}{"Type": "file", "Name": file.Name()})
+				items = append(items, map[string]interface{}{"Type": "file", "Name": file.Name(), "Time": fileInfo.ModTime()})
 			}
 		}
 
