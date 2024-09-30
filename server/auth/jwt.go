@@ -137,18 +137,26 @@ func authorizator() func(data interface{}, c *gin.Context) bool {
 
 func unauthorized() func(c *gin.Context, code int, message string) {
 	return func(c *gin.Context, code int, message string) {
-		c.JSON(code, gin.H{
+		/*c.JSON(code, gin.H{
 			"code":    code,
 			"message": message,
-		})
+		})*/
+		c.Writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		c.Writer.Header().Set("Pragma", "no-cache")
+		c.Writer.Header().Set("Expires", "0")
+		c.Redirect(http.StatusMovedPermanently, "/login")
 	}
 }
 
 func HandleNoRoute() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		claims := jwt.ExtractClaims(c)
-		log.Printf("NoRoute claims: %#v\n", claims)
-		c.JSON(404, gin.H{"code": "PAGE_NOT_FOUND", "message": "Page not found"})
+		c.Writer.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		c.Writer.Header().Set("Pragma", "no-cache")
+		c.Writer.Header().Set("Expires", "0")
+		c.Redirect(http.StatusMovedPermanently, "/drive")
+		//claims := jwt.ExtractClaims(c)
+		//log.Printf("NoRoute claims: %#v\n", claims)
+		//c.JSON(404, gin.H{"code": "PAGE_NOT_FOUND", "message": "Page not found"})
 	}
 }
 
