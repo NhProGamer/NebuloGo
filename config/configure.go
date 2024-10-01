@@ -9,10 +9,11 @@ import (
 
 // Config structure to map the YAML fields
 type Config struct {
-	Server ServerConfig `yaml:"server"`
-	JWT    JWTConfig    `yaml:"jwt"`
-	Argon  ArgonConfig  `yaml:"argon"`
-	Debug  bool         `yaml:"debug"`
+	Server   ServerConfig   `yaml:"server"`
+	JWT      JWTConfig      `yaml:"jwt"`
+	Argon    ArgonConfig    `yaml:"argon"`
+	Database DatabaseConfig `yaml:"database"`
+	Debug    bool           `yaml:"debug"`
 }
 
 // ServerConfig for the server settings
@@ -34,6 +35,11 @@ type ArgonConfig struct {
 	Memory      uint32 `yaml:"memory"`
 	Iterations  uint32 `yaml:"iterations"`
 	HashLenght  uint32 `yaml:"hash_lenght"`
+}
+
+type DatabaseConfig struct {
+	ServerURL    string `yaml:"mongodb_url"`
+	DatabaseName string `yaml:"database_name"`
 }
 
 var Configuration *Config
@@ -60,6 +66,10 @@ func LoadConfig() {
 				Memory:      64,
 				Iterations:  2,
 				HashLenght:  32,
+			},
+			Database: DatabaseConfig{
+				ServerURL:    "mongodb://mongouser:mongopass@localhost:27017",
+				DatabaseName: "nebulogo",
 			},
 			Debug: false,
 		})

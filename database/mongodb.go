@@ -1,8 +1,10 @@
 package database
 
 import (
+	"NebuloGo/config"
 	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -86,4 +88,21 @@ func (um *UserManager) GetUserByLoginID(loginID string) (*MongoUser, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func MongoDBInit() error {
+	// Configuration du client MongoDB
+	clientOptions := options.Client().ApplyURI(config.Configuration.Database.ServerURL)
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		return err
+	}
+	defer client.Disconnect(context.TODO())
+
+	// Connexion à la base de données et à la collection "users"
+	collection := client.Database(config.Configuration.Database.DatabaseName).Collection("users")
+
+	// Créer un gestionnaire d'utilisateurs
+	ApplicationUserManager = NewUserManager(collection)
+	return nil
 }
