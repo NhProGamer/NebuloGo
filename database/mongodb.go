@@ -3,7 +3,6 @@ package database
 import (
 	"NebuloGo/config"
 	"context"
-	"fmt"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 
@@ -46,17 +45,8 @@ func (um *UserManager) CreateUser(internalID, loginID, hashedPassword string) er
 
 // UpdateLoginID met à jour l'identifiant de connexion d'un utilisateur
 func (um *UserManager) UpdateLoginID(internalID, newLoginID string) error {
-	// Vérifier si le nouveau login_id est déjà utilisé
-	count, err := um.collection.CountDocuments(context.TODO(), bson.M{"login_id": newLoginID})
-	if err != nil {
-		return err
-	}
-	if count > 0 {
-		return fmt.Errorf("l'identifiant de connexion '%s' est déjà utilisé", newLoginID)
-	}
-
 	// Mettre à jour l'identifiant de connexion
-	_, err = um.collection.UpdateOne(context.TODO(),
+	_, err := um.collection.UpdateOne(context.TODO(),
 		bson.M{"internal_id": internalID},
 		bson.M{"$set": bson.M{"login_id": newLoginID, "last_modified": time.Now()}})
 	return err
@@ -101,6 +91,24 @@ func MongoDBInit() error {
 
 	// Connexion à la base de données et à la collection "users"
 	collection := client.Database(config.Configuration.Database.DatabaseName).Collection("users")
+
+	// Créer un index unique sur le champ internal_id
+	indexModelInternalID := mongo.IndexModel{
+		Keys:    bson.M{"internal_id": 1}, // 1 signifie un ordre croissant
+		Options: options.Index().SetUnique(true),
+	}
+
+	// Créer un index unique sur le champ login_id
+	indexModelLoginID := mongo.IndexModel{
+		Keys:    bson.M{"login_id": 1}, // 1 signifie un ordre croissant
+		Options: options.Index().SetUnique(true),
+	}
+
+	// Créer les deux index
+	_, err = collection.Indexes().CreateMany(context.TODO(), []mongo.IndexModel{indexModelInternalID, indexModelLoginID})
+	if err != nil {
+		return err
+	}
 
 	// Créer un gestionnaire d'utilisateurs
 	ApplicationUserManager = NewUserManager(collection)
