@@ -99,18 +99,23 @@ func identityHandler() func(c *gin.Context) interface{} {
 func authenticator() func(c *gin.Context) (interface{}, error) {
 	return func(c *gin.Context) (interface{}, error) {
 		var loginVals login
-		if err := c.ShouldBind(&loginVals); err != nil {
+		var user *database.MongoUser
+		var err error
+		err = c.ShouldBind(&loginVals)
+		if err != nil {
 			return "", jwt.ErrMissingLoginValues
 		}
-		userID := loginVals.Username
+		loginID := loginVals.Username
 		password := loginVals.Password
+		user, err = database.ApplicationUserManager.GetUserByLoginID(loginID)
+		if err != nil {
+			return "", jwt.ErrFailedAuthentication
+		}
 
-		if database.VerifyUserInCache(userID, salt.HashPhrase(password)) {
+		if salt.HashCompare(password, user.HashedPassword) {
 			return &User{
-				UserName: userID,
-				UserId:   "1",
-				//LastName:  "Bo-Yi",
-				//FirstName: "Wu",
+				UserName: user.LoginID,
+				UserId:   user.InternalID,
 			}, nil
 		}
 		return nil, jwt.ErrFailedAuthentication

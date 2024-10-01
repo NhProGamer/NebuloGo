@@ -14,3 +14,7 @@ func HashPhrase(phrase string) string {
 	hashlenght := config.Configuration.Argon.HashLenght
 	return hex.EncodeToString(argon2.IDKey([]byte(phrase), salt, iterations, memory, parallelism, hashlenght))
 }
+
+func HashCompare(phrase string, hash string) bool {
+	return HashPhrase(phrase) == hash
+}
