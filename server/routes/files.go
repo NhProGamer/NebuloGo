@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -65,23 +66,25 @@ func DownloadFile(c *gin.Context) {
 func UploadFile(c *gin.Context) {
 	requestedUserID := c.DefaultQuery("UserId", "")
 	path := c.DefaultQuery("path", "")
-	filename := c.DefaultQuery("filename", "")
+	//filename := c.DefaultQuery("filename", "")
 	claims := jwt.ExtractClaims(c)
 	//c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1024<<20)
 
 	if accessManager(c, requestedUserID) {
 		userPath := filepath.Join("storage", claims["user_id"].(string))
-		filePath := filepath.Join(userPath, path, filename)
+		filePath := filepath.Join(userPath, path)
 		if !isPathAllowed(userPath, filePath) {
 			c.String(http.StatusForbidden, "Accès refusé")
 			return
 		}
 		file, err := c.FormFile("file")
 		if err != nil {
+			fmt.Println(err)
 			c.String(400, "Failed to get file: %s", err.Error())
 			return
 		}
-		if err := c.SaveUploadedFile(file, filePath); err != nil {
+		if err := c.SaveUploadedFile(file, filepath.Join(filePath, file.Filename)); err != nil {
+			fmt.Println(err)
 			c.String(500, "Failed to save file: %s", err.Error())
 			return
 		}

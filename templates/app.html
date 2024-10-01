@@ -268,14 +268,53 @@
     }
 
     // Handle file drop
-    dropZone.addEventListener('drop', event => {
-        const files = event.dataTransfer.files;
-        if (files.length) {
-            Array.from(files).forEach(file => {
-                //addUploadToMenu(file.name)
-                uploadFile(file)
-            })
-            //openUploadMenu()
+    const maxUploads = 5;
+
+    dropZone.addEventListener('drop', async (event) => {
+        event.preventDefault();
+
+        const files = Array.from(event.dataTransfer.files);
+        const url = `/api/v1/files?UserId=${UserId}&path=${ActualPath}`; // URL de votre API pour l'upload
+
+        // Fonction pour uploader un fichier
+        const uploadFile = async (file) => {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`Upload failed for ${file.name}`);
+            }
+            return response;
+        };
+
+        // Limiter les uploads à 5 en parallèle
+        const uploadFilesInBatches = async (fileList, batchSize) => {
+            const results = [];
+
+            for (let i = 0; i < fileList.length; i += batchSize) {
+                const batch = fileList.slice(i, i + batchSize);
+                const uploadPromises = batch.map(uploadFile);
+
+                try {
+                    const batchResults = await Promise.all(uploadPromises);
+                    results.push(...batchResults);
+                } catch (error) {
+                    console.error('Error uploading files:', error);
+                }
+            }
+            return results;
+        };
+
+        try {
+            const uploadResults = await uploadFilesInBatches(files, maxUploads);
+            console.log('All files uploaded:', uploadResults);
+        } catch (error) {
+            console.error('Upload error:', error);
         }
     });
 
@@ -361,9 +400,7 @@
         }
     }
 
-    function uploadFile(file) {
-        const formData = new FormData();
-        formData.append('file', file);
+    function uploadFile(formData) {
         const xhr = new XMLHttpRequest();
 
         xhr.upload.addEventListener('progress', function(event) {
@@ -372,19 +409,27 @@
                 console.log(`Upload Progress: ${percentComplete}%`);
             }
         });
-        xhr.addEventListener('load', function() {
-            if (xhr.status === 200) {
-                loadFolderContent()
-                console.log('Upload réussi!');
+        // Timeout après 10 secondes
+        xhr.timeout = 10000;
+
+        xhr.ontimeout = function() {
+            console.error("Timeout de la requête.");
+        };
+
+        xhr.onerror = function(e) {
+            console.error("Erreur réseau pendant l'upload : ", e);
+        };
+
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                console.log("Upload réussi !");
             } else {
-                console.log('Erreur lors de l\'upload')
+                console.error("Erreur de réponse du serveur : " + xhr.status);
             }
-        });
-        xhr.addEventListener('error', function() {
-            console.log('Erreur réseau pendant l\'upload:', xhr.response)
-        });
+        };
+
         xhr.withCredentials = true;
-        xhr.open('POST', `/api/v1/files?UserId=${UserId}&path=${ActualPath}&filename=${file.name}`);
+        xhr.open('POST', `/api/v1/files?UserId=${UserId}&path=${ActualPath}&filename=sdfqsdf.f`);
         xhr.send(formData);
 
     }
