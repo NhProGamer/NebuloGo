@@ -3,11 +3,9 @@ package auth
 import (
 	"NebuloGo/config"
 	"NebuloGo/database"
-	"encoding/hex"
+	"NebuloGo/salt"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/argon2"
-
 	"log"
 	"net/http"
 	"strings"
@@ -107,14 +105,7 @@ func authenticator() func(c *gin.Context) (interface{}, error) {
 		userID := loginVals.Username
 		password := loginVals.Password
 
-		salt := []byte(config.Configuration.Argon.Salt)
-		iterations := config.Configuration.Argon.Iterations
-		memory := config.Configuration.Argon.Memory
-		parallelism := config.Configuration.Argon.Parallelism
-		hashlenght := config.Configuration.Argon.HashLenght
-		computedHash := argon2.IDKey([]byte(password), salt, iterations, memory, parallelism, hashlenght)
-
-		if sqlite.VerifyUserInCache(userID, hex.EncodeToString(computedHash)) {
+		if database.VerifyUserInCache(userID, salt.HashPhrase(password)) {
 			return &User{
 				UserName: userID,
 				UserId:   "1",

@@ -2,7 +2,7 @@ package main
 
 import (
 	"NebuloGo/config"
-	"NebuloGo/database"
+	sqlite "NebuloGo/database"
 	"NebuloGo/server"
 	"NebuloGo/server/auth"
 	"github.com/gin-gonic/gin"
