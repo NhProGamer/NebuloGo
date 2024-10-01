@@ -23,11 +23,12 @@ type MongoUser struct {
 // UserManager gère les opérations sur les utilisateurs
 type UserManager struct {
 	collection *mongo.Collection
+	Database   *mongo.Database
 }
 
 // NewUserManager crée un nouveau UserManager
 func NewUserManager(collection *mongo.Collection) *UserManager {
-	return &UserManager{collection: collection}
+	return &UserManager{collection: collection, Database: collection.Database()}
 }
 
 // CreateUser crée un nouvel utilisateur
@@ -87,7 +88,6 @@ func MongoDBInit() error {
 	if err != nil {
 		return err
 	}
-	defer client.Disconnect(context.TODO())
 
 	// Connexion à la base de données et à la collection "users"
 	collection := client.Database(config.Configuration.Database.DatabaseName).Collection("users")

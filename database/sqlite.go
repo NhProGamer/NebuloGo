@@ -8,17 +8,17 @@ import (
 	"os"
 )
 
-type User struct {
+type Userr struct {
 	Username     string
 	PasswordHash string
 }
 
 var database *sql.DB
 
-var UsersCache map[string]User
+var UsersCache map[string]Userr
 
 func InitSqliteDB() {
-	UsersCache = make(map[string]User)
+	UsersCache = make(map[string]Userr)
 	databaseFile := "./database.db"
 
 	exist, err := utils.DoesExistFile(databaseFile)
@@ -84,7 +84,7 @@ func loadUsersToCache() error {
 		if err := rows.Scan(&username, &passwordHash); err != nil {
 			return err
 		}
-		UsersCache[username] = User{
+		UsersCache[username] = Userr{
 			Username:     username,
 			PasswordHash: passwordHash,
 		}
@@ -114,7 +114,7 @@ func InsertUserAndUpdateCache(username, passwordHash string) error {
 	}
 
 	// Mise à jour du cache
-	UsersCache[username] = User{
+	UsersCache[username] = Userr{
 		Username:     username,
 		PasswordHash: passwordHash,
 	}

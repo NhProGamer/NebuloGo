@@ -5,6 +5,7 @@ import (
 	"NebuloGo/database"
 	"NebuloGo/server"
 	"NebuloGo/server/auth"
+	"context"
 	"github.com/gin-gonic/gin"
 	"log"
 	"strconv"
@@ -37,4 +38,5 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer database.ApplicationUserManager.Database.Client().Disconnect(context.TODO())
 }
