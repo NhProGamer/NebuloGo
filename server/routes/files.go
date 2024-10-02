@@ -237,6 +237,11 @@ func Content(c *gin.Context) {
 			fileInfo, err := file.Info()
 			if err != nil {
 				c.String(500, err.Error())
+				return
+			}
+			if fileInfo == nil {
+				c.String(500, "No file Informations")
+				return
 			}
 			if file.IsDir() {
 				items = append(items, map[string]interface{}{"Type": "directory", "Name": file.Name(), "Time": fileInfo.ModTime()})
