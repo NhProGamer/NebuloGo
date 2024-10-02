@@ -2,7 +2,9 @@ package database
 
 import (
 	"NebuloGo/config"
+	"NebuloGo/salt"
 	"context"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 
@@ -32,11 +34,11 @@ func NewUserManager(collection *mongo.Collection) *UserManager {
 }
 
 // CreateUser crée un nouvel utilisateur
-func (um *UserManager) CreateUser(internalID, loginID, hashedPassword string) error {
+func (um *UserManager) CreateUser(loginID, password string) error {
 	user := MongoUser{
-		InternalID:     internalID,
+		InternalID:     uuid.NewString(),
 		LoginID:        loginID,
-		HashedPassword: hashedPassword,
+		HashedPassword: salt.HashPhrase(password),
 		LastModified:   time.Now(),
 	}
 
