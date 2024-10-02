@@ -115,7 +115,7 @@ func authenticator() func(c *gin.Context) (interface{}, error) {
 		if salt.HashCompare(password, user.HashedPassword) {
 			return &User{
 				UserName: user.LoginID,
-				UserId:   user.InternalID.String(),
+				UserId:   user.InternalID.Hex(),
 			}, nil
 		}
 		return nil, jwt.ErrFailedAuthentication
