@@ -13,6 +13,7 @@ type Config struct {
 	JWT      JWTConfig      `yaml:"jwt"`
 	Argon    ArgonConfig    `yaml:"argon"`
 	Database DatabaseConfig `yaml:"database"`
+	Storage  StorageConfig  `yaml:"storage"`
 	Debug    bool           `yaml:"debug"`
 }
 
@@ -40,6 +41,10 @@ type ArgonConfig struct {
 type DatabaseConfig struct {
 	ServerURL    string `yaml:"mongodb_url"`
 	DatabaseName string `yaml:"database_name"`
+}
+
+type StorageConfig struct {
+	Directory string `yaml:"directory"`
 }
 
 var Configuration *Config
@@ -70,6 +75,9 @@ func LoadConfig() {
 			Database: DatabaseConfig{
 				ServerURL:    "mongodb://mongouser:mongopass@localhost:27017",
 				DatabaseName: "nebulogo",
+			},
+			Storage: StorageConfig{
+				Directory: "storage",
 			},
 			Debug: false,
 		})
