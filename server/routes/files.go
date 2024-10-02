@@ -5,6 +5,7 @@ import (
 	"fmt"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -70,6 +71,7 @@ func UploadFile(c *gin.Context) {
 	//filename := c.DefaultQuery("filename", "")
 	claims := jwt.ExtractClaims(c)
 	//c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1024<<20)
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 16*1024*1024*1024)
 
 	if accessManager(c, requestedUserID) {
 		userPath := filepath.Join(config.Configuration.Storage.Directory, claims["user_id"].(string))
@@ -78,17 +80,48 @@ func UploadFile(c *gin.Context) {
 			c.String(http.StatusForbidden, "Accès refusé")
 			return
 		}
-		file, err := c.FormFile("file")
+		/*file, err := c.FormFile("file")
 		if err != nil {
 			fmt.Println(err)
 			c.String(400, "Failed to get file: %s", err.Error())
 			return
-		}
-		if err := c.SaveUploadedFile(file, filepath.Join(filePath, file.Filename)); err != nil {
-			fmt.Println(err)
-			c.String(500, "Failed to save file: %s", err.Error())
+		}*/
+		//filepath.Join(filePath, file.Filename)
+		// Créer le fichier sur le disque
+		//out, err := os.Create(filepath.Join(filePath, file.Filename))
+
+		// Récupérer le fichier à partir du formulaire
+		file, header, err := c.Request.FormFile("file")
+		if err != nil {
+			c.String(http.StatusBadRequest, "Erreur lors de la récupération du fichier: %s", err.Error())
 			return
 		}
+		defer file.Close()
+
+		// Chemin complet pour enregistrer le fichier
+		dst := filepath.Join(filePath, header.Filename)
+
+		// Créer le fichier sur le disque
+		out, err := os.Create(dst)
+		if err != nil {
+			c.String(http.StatusInternalServerError, "Erreur lors de la création du fichier: %s", err.Error())
+			return
+		}
+		defer func() {
+			if err := out.Close(); err != nil {
+				fmt.Printf("Erreur lors de la fermeture du fichier: %v\n", err)
+			}
+		}()
+
+		// Copier le contenu du fichier téléchargé directement sur le disque
+		if _, err := io.Copy(out, file); err != nil {
+			// Si l'écriture échoue, supprimer le fichier
+			os.Remove(dst)
+			c.String(http.StatusInternalServerError, "Erreur lors de l'écriture du fichier: %s", err.Error())
+			return
+		}
+
+		c.String(http.StatusOK, "Fichier uploadé avec succès: %s", header.Filename)
 
 	}
 }
