@@ -2,10 +2,10 @@ package routes
 
 import (
 	"NebuloGo/config"
-	"fmt"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -68,61 +68,61 @@ func DownloadFile(c *gin.Context) {
 func UploadFile(c *gin.Context) {
 	requestedUserID := c.DefaultQuery("UserId", "")
 	path := c.DefaultQuery("path", "")
-	//filename := c.DefaultQuery("filename", "")
 	claims := jwt.ExtractClaims(c)
-	//c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1024<<20)
+
+	// Limiter la taille de l'upload à 16 Go, mais seulement 10 Mo en RAM
+	maxMemory := int64(10 * 1024 * 1024) // 10 Mo
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 16*1024*1024*1024)
 
 	if accessManager(c, requestedUserID) {
 		userPath := filepath.Join(config.Configuration.Storage.Directory, claims["user_id"].(string))
 		filePath := filepath.Join(userPath, path)
+
 		if !isPathAllowed(userPath, filePath) {
 			c.String(http.StatusForbidden, "Accès refusé")
 			return
 		}
-		/*file, err := c.FormFile("file")
-		if err != nil {
-			fmt.Println(err)
-			c.String(400, "Failed to get file: %s", err.Error())
-			return
-		}*/
-		//filepath.Join(filePath, file.Filename)
-		// Créer le fichier sur le disque
-		//out, err := os.Create(filepath.Join(filePath, file.Filename))
 
-		// Récupérer le fichier à partir du formulaire
-		file, header, err := c.Request.FormFile("file")
+		// Lire les fichiers de la requête multipart
+		err := c.Request.ParseMultipartForm(maxMemory)
 		if err != nil {
-			c.String(http.StatusBadRequest, "Erreur lors de la récupération du fichier: %s", err.Error())
+			log.Println(err)
+			c.String(http.StatusBadRequest, "Erreur lors de l'analyse du formulaire: %s", err.Error())
+			return
+		}
+
+		// Récupérer le fichier
+		file, fileHeader, err := c.Request.FormFile("file")
+		if err != nil {
+			c.String(http.StatusBadRequest, "Échec de la récupération du fichier: %s", err.Error())
 			return
 		}
 		defer file.Close()
 
-		// Chemin complet pour enregistrer le fichier
-		dst := filepath.Join(filePath, header.Filename)
+		// Obtenir le nom du fichier
+		fileName := fileHeader.Filename
 
-		// Créer le fichier sur le disque
-		out, err := os.Create(dst)
+		// Créer le chemin complet du fichier
+		destinationPath := filepath.Join(filePath, fileName)
+
+		// Ouvrir le fichier de destination
+		outFile, err := os.Create(destinationPath)
 		if err != nil {
+			log.Println(err)
 			c.String(http.StatusInternalServerError, "Erreur lors de la création du fichier: %s", err.Error())
 			return
 		}
-		defer func() {
-			if err := out.Close(); err != nil {
-				fmt.Printf("Erreur lors de la fermeture du fichier: %v\n", err)
-			}
-		}()
+		defer outFile.Close()
 
-		// Copier le contenu du fichier téléchargé directement sur le disque
-		if _, err := io.Copy(out, file); err != nil {
-			// Si l'écriture échoue, supprimer le fichier
-			os.Remove(dst)
+		// Copier le contenu du fichier uploadé dans le fichier de destination
+		_, err = io.Copy(outFile, file)
+		if err != nil {
+			log.Println(err)
 			c.String(http.StatusInternalServerError, "Erreur lors de l'écriture du fichier: %s", err.Error())
 			return
 		}
 
-		c.String(http.StatusOK, "Fichier uploadé avec succès: %s", header.Filename)
-
+		c.String(http.StatusOK, "Fichier uploadé avec succès: %s", fileName)
 	}
 }
 

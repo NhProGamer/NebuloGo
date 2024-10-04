@@ -254,28 +254,35 @@
         const url = `/api/v1/files/?UserId=${UserId}&path=${ActualPath}`; // URL de votre API pour l'upload
 
         // Fonction pour uploader un fichier
-        const uploadFile = async (file) => {
-            const formData = new FormData();
-            formData.append('file', file);
+        const uploadFile = (file) => {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                const formData = new FormData();
 
-            try {
-                const response = await axios.post(url, formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                    withCredentials: true,
-                    timeout: 0, // Désactive le timeout pour les uploads volumineux
-                    maxRedirects: 5
-                });
+                // Ajouter le fichier au FormData
+                formData.append('file', file);
 
-                if (response.status !== 200) {
-                    throw new Error(`Upload failed for ${file.name}`);
-                }
-                return response;
-            } catch (error) {
-                console.error('Error during upload:', error);
-                throw error;
-            }
+                // Définir le nom du fichier dans les headers
+                xhr.open('POST', url, true);
+                xhr.setRequestHeader('X-File-Name', file.name); // Envoie le nom du fichier dans l'en-tête
+
+                // Gérer la réponse de la requête
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        resolve(xhr.responseText);
+                    } else {
+                        reject(new Error(`Upload failed for ${file.name}: ${xhr.statusText}`));
+                    }
+                };
+
+                // Gérer les erreurs
+                xhr.onerror = () => {
+                    reject(new Error(`Network error while uploading ${file.name}`));
+                };
+
+                // Envoyer la requête
+                xhr.send(formData);
+            });
         };
 
         // Limiter les uploads à 5 en parallèle
@@ -299,7 +306,7 @@
         try {
             const uploadResults = await uploadFilesInBatches(files, maxUploads);
             console.log('All files uploaded:', uploadResults);
-            loadFolderContent();
+            loadFolderContent(); // Recharge le contenu du dossier après l'upload
         } catch (error) {
             console.error('Upload error:', error);
         }
