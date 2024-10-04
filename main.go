@@ -15,6 +15,7 @@ func main() {
 	var err error
 
 	config.LoadConfig()
+
 	database.ApplicationDataManager, err = database.NewDataManager(config.Configuration.Database.ServerURL)
 	if err != nil {
 		log.Fatal(err)
