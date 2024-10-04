@@ -4,15 +4,15 @@ import (
 	"NebuloGo/config"
 	"NebuloGo/salt"
 	"context"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var ApplicationUserManager *UserManager
+var ApplicationDataManager *DataManager
 
 // MongoUser représente un utilisateur dans MongoDB avec ObjectID
 type MongoUser struct {
@@ -22,15 +22,74 @@ type MongoUser struct {
 	LastModified   time.Time          `bson:"last_modified"`
 }
 
+type MongoFile struct {
+	InternalID   primitive.ObjectID   `bson:"_id,omitempty"` // Utilisation d'ObjectID comme clé primaire
+	FileName     string               `bson:"file_name"`
+	Owner        primitive.ObjectID   `bson:"owner_id"`
+	SharedWith   []primitive.ObjectID `bson:"shared_with"`
+	LastModified time.Time            `bson:"last_modified"`
+}
+
+type DataManager struct {
+	Client      *mongo.Client
+	UserManager *UserManager
+	FileManager *FileManager
+}
+
 // UserManager gère les opérations sur les utilisateurs
 type UserManager struct {
 	collection *mongo.Collection
-	Database   *mongo.Database
 }
 
-// NewUserManager crée un nouveau UserManager
-func NewUserManager(collection *mongo.Collection) *UserManager {
-	return &UserManager{collection: collection, Database: collection.Database()}
+type FileManager struct {
+	collection *mongo.Collection
+}
+
+// NewDataManager crée un nouveau DataManager
+func NewDataManager(serverURL string) (*DataManager, error) {
+	// Configuration du client MongoDB
+	clientOptions := options.Client().ApplyURI(serverURL)
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		return nil, err
+	}
+	usersCollection := client.Database(config.Configuration.Database.DatabaseName).Collection("users")
+	filesCollection := client.Database(config.Configuration.Database.DatabaseName).Collection("files")
+
+	// Créer un index unique sur le champ login_id (internal_id est géré par MongoDB)
+	indexModelLoginID := mongo.IndexModel{
+		Keys:    bson.M{"login_id": 1}, // 1 signifie un ordre croissant
+		Options: options.Index().SetUnique(true),
+	}
+	// Créer l'index
+	_, err = usersCollection.Indexes().CreateOne(context.TODO(), indexModelLoginID)
+	if err != nil {
+		return nil, err
+	}
+
+	indexModelFiles := mongo.IndexModel{
+		Keys: bson.D{
+			{"user_id", 1}, // 1 pour l'index ascendant
+			{"name", 1},
+			{"path", 1},
+		},
+		Options: options.Index().SetUnique(true), // Spécifier que l'index est unique
+	}
+	// Créer l'index
+	_, err = filesCollection.Indexes().CreateOne(context.TODO(), indexModelFiles)
+	if err != nil {
+		return nil, err
+	}
+
+	return &DataManager{
+		Client: client,
+		UserManager: &UserManager{
+			collection: usersCollection,
+		},
+		FileManager: &FileManager{
+			collection: filesCollection,
+		},
+	}, nil
 }
 
 // CreateUser crée un nouvel utilisateur
@@ -82,31 +141,16 @@ func (um *UserManager) GetUserByLoginID(loginID string) (*MongoUser, error) {
 	return &user, nil
 }
 
-// MongoDBInit initialise la base de données MongoDB et les index
-func MongoDBInit() error {
-	// Configuration du client MongoDB
-	clientOptions := options.Client().ApplyURI(config.Configuration.Database.ServerURL)
-	client, err := mongo.Connect(context.TODO(), clientOptions)
-	if err != nil {
-		return err
+// CreateFile crée un nouveau fichier
+func (fm *FileManager) CreateFile(ownerID primitive.ObjectID, filename string) error {
+	user := MongoFile{
+		InternalID:   primitive.NewObjectID(), // Génération automatique de l'ObjectID
+		Owner:        ownerID,
+		FileName:     filename,
+		SharedWith:   []primitive.ObjectID{},
+		LastModified: time.Now(),
 	}
 
-	// Connexion à la base de données et à la collection "users"
-	collection := client.Database(config.Configuration.Database.DatabaseName).Collection("users")
-
-	// Créer un index unique sur le champ login_id (internal_id est géré par MongoDB)
-	indexModelLoginID := mongo.IndexModel{
-		Keys:    bson.M{"login_id": 1}, // 1 signifie un ordre croissant
-		Options: options.Index().SetUnique(true),
-	}
-
-	// Créer l'index
-	_, err = collection.Indexes().CreateOne(context.TODO(), indexModelLoginID)
-	if err != nil {
-		return err
-	}
-
-	// Créer un gestionnaire d'utilisateurs
-	ApplicationUserManager = NewUserManager(collection)
-	return nil
+	_, err := fm.collection.InsertOne(context.TODO(), user)
+	return err
 }

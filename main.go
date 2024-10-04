@@ -12,8 +12,10 @@ import (
 )
 
 func main() {
+	var err error
+
 	config.LoadConfig()
-	err := database.MongoDBInit()
+	database.ApplicationDataManager, err = database.NewDataManager(config.Configuration.Database.ServerURL)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -38,5 +40,5 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer database.ApplicationUserManager.Database.Client().Disconnect(context.TODO())
+	defer database.ApplicationDataManager.Client.Disconnect(context.TODO())
 }

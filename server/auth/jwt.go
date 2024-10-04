@@ -107,7 +107,7 @@ func authenticator() func(c *gin.Context) (interface{}, error) {
 		}
 		loginID := loginVals.Username
 		password := loginVals.Password
-		user, err = database.ApplicationUserManager.GetUserByLoginID(loginID)
+		user, err = database.ApplicationDataManager.UserManager.GetUserByLoginID(loginID)
 		if err != nil {
 			return "", jwt.ErrFailedAuthentication
 		}
