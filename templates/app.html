@@ -207,7 +207,7 @@
             const formattedDate = `${day}/${month}/${year} ${hours}h${minutes}`;
 
             if (item.Type === 'file') {
-                //<a href="/api/v1/files?userId=${UserId}&path=${ActualPath}&filename=${item.Name}"
+                //<a href="/api/v1/files/?userId=${UserId}&path=${ActualPath}&filename=${item.Name}"
                 return `
                 <li class="bg-white p-4 rounded-lg shadow-md flex items-center justify-between context-menu-target" data-info="${item.Name}" data-type="file">
                 <div class="flex items-center">
@@ -251,7 +251,7 @@
         event.preventDefault();
 
         const files = Array.from(event.dataTransfer.files);
-        const url = `/api/v1/files?UserId=${UserId}&path=${ActualPath}`; // URL de votre API pour l'upload
+        const url = `/api/v1/files/?UserId=${UserId}&path=${ActualPath}`; // URL de votre API pour l'upload
 
         // Fonction pour uploader un fichier
         const uploadFile = async (file) => {
@@ -368,12 +368,12 @@
     // ---------------------- FILE OPERATIONS ----------------------
 
     function downloadFile() {
-        window.location.href=`/api/v1/files?userId=${UserId}&path=${ActualPath}&filename=${SelectedItem.get('Name')}`;
+        window.location.href=`/api/v1/files/?userId=${UserId}&path=${ActualPath}&filename=${SelectedItem.get('Name')}`;
     }
 
     function deleteFile() {
         if (SelectedItem.get("Type") === "file") {
-            fetch(`/api/v1/files?userId=${UserId}&path=${ActualPath}&filename=${SelectedItem.get('Name')}`, {
+            fetch(`/api/v1/files/?userId=${UserId}&path=${ActualPath}&filename=${SelectedItem.get('Name')}`, {
                 method: 'DELETE',
                 credentials: 'include'
             })
@@ -392,7 +392,7 @@
     function renameFile(newName) {
         //let newName = prompt("Enter new name:", SelectedItem.get('Name'));
         if (newName) {
-            fetch(`/api/v1/files?userId=${UserId}&path=${ActualPath}&filename=${SelectedItem.get('Name')}&newName=${newName}`, {
+            fetch(`/api/v1/files/?userId=${UserId}&path=${ActualPath}&filename=${SelectedItem.get('Name')}&newName=${newName}`, {
                 method: 'PATCH',
                 credentials: 'include'
             })
@@ -441,7 +441,7 @@
         };
 
         xhr.withCredentials = true;
-        xhr.open('POST', `/api/v1/files?UserId=${UserId}&path=${ActualPath}&filename=sdfqsdf.f`);
+        xhr.open('POST', `/api/v1/files/?UserId=${UserId}&path=${ActualPath}&filename=sdfqsdf.f`);
         xhr.send(formData);
 
     }
