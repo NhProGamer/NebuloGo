@@ -38,10 +38,10 @@ func isPathAllowed(baseDir, requestedPath string) bool {
 }
 
 func DownloadFile(c *gin.Context) {
-	requestedUserID := c.DefaultQuery("userId", "")
+	claims := jwt.ExtractClaims(c)
+	requestedUserID := c.DefaultQuery("userId", claims["user_id"].(string))
 	path := c.DefaultQuery("path", "")
 	filename := c.DefaultQuery("filename", "")
-	claims := jwt.ExtractClaims(c)
 
 	if accessManager(c, requestedUserID) {
 		userPath := filepath.Join(config.Configuration.Storage.Directory, claims["user_id"].(string))
@@ -66,13 +66,9 @@ func DownloadFile(c *gin.Context) {
 }
 
 func UploadFile(c *gin.Context) {
-	requestedUserID := c.DefaultQuery("UserId", "")
-	path := c.DefaultQuery("path", "")
 	claims := jwt.ExtractClaims(c)
-
-	// Limiter la taille de l'upload à 16 Go, mais seulement 10 Mo en RAM
-	maxMemory := int64(10 * 1024 * 1024) // 10 Mo
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 16*1024*1024*1024)
+	requestedUserID := c.DefaultQuery("userId", claims["user_id"].(string))
+	path := c.DefaultQuery("path", "")
 
 	if accessManager(c, requestedUserID) {
 		userPath := filepath.Join(config.Configuration.Storage.Directory, claims["user_id"].(string))
@@ -83,54 +79,56 @@ func UploadFile(c *gin.Context) {
 			return
 		}
 
-		// Lire les fichiers de la requête multipart
-		err := c.Request.ParseMultipartForm(maxMemory)
+		// Récupérer le corps de la requête et créer un lecteur multipart
+		reader, err := c.Request.MultipartReader()
 		if err != nil {
-			log.Println(err)
-			c.String(http.StatusBadRequest, "Erreur lors de l'analyse du formulaire: %s", err.Error())
+			c.String(http.StatusBadRequest, "Échec de la récupération du lecteur multipart: %s", err.Error())
 			return
 		}
 
-		// Récupérer le fichier
-		file, fileHeader, err := c.Request.FormFile("file")
-		if err != nil {
-			c.String(http.StatusBadRequest, "Échec de la récupération du fichier: %s", err.Error())
-			return
+		for {
+			part, err := reader.NextPart()
+			if err == io.EOF {
+				break // Fin des parties
+			}
+			if err != nil {
+				c.String(http.StatusInternalServerError, "Erreur lors de la lecture des parties: %s", err.Error())
+				return
+			}
+
+			// Vérifiez si la partie est un fichier
+			if part.FileName() != "" {
+				// Récupérer le nom du fichier
+				fileName := filepath.Base(part.FileName())
+				destinationPath := filepath.Join(filePath, fileName)
+
+				// Ouvrir le fichier de destination
+				outFile, err := os.Create(destinationPath)
+				if err != nil {
+					c.String(http.StatusInternalServerError, "Erreur lors de la création du fichier: %s", err.Error())
+					return
+				}
+				defer outFile.Close()
+
+				// Écrire le contenu du fichier dans le fichier de destination
+				// Vous pouvez aussi directement streamer sans lire entièrement le contenu en mémoire
+				if _, err := io.Copy(outFile, part); err != nil {
+					c.String(http.StatusInternalServerError, "Erreur lors de l'écriture du fichier: %s", err.Error())
+					return
+				}
+			}
 		}
-		defer file.Close()
 
-		// Obtenir le nom du fichier
-		fileName := fileHeader.Filename
-
-		// Créer le chemin complet du fichier
-		destinationPath := filepath.Join(filePath, fileName)
-
-		// Ouvrir le fichier de destination
-		outFile, err := os.Create(destinationPath)
-		if err != nil {
-			log.Println(err)
-			c.String(http.StatusInternalServerError, "Erreur lors de la création du fichier: %s", err.Error())
-			return
-		}
-		defer outFile.Close()
-
-		// Copier le contenu du fichier uploadé dans le fichier de destination
-		_, err = io.Copy(outFile, file)
-		if err != nil {
-			log.Println(err)
-			c.String(http.StatusInternalServerError, "Erreur lors de l'écriture du fichier: %s", err.Error())
-			return
-		}
-
-		c.String(http.StatusOK, "Fichier uploadé avec succès: %s", fileName)
+		c.String(http.StatusOK, "Fichiers uploadés avec succès.")
 	}
 }
 
 func DeleteFile(c *gin.Context) {
-	requestedUserID := c.DefaultQuery("userId", "")
+	claims := jwt.ExtractClaims(c)
+	requestedUserID := c.DefaultQuery("userId", claims["user_id"].(string))
 	path := c.DefaultQuery("path", "")
 	filename := c.DefaultQuery("filename", "")
-	claims := jwt.ExtractClaims(c)
+	log.Println(filename)
 
 	if accessManager(c, requestedUserID) {
 		userPath := filepath.Join(config.Configuration.Storage.Directory, claims["user_id"].(string))
@@ -139,6 +137,7 @@ func DeleteFile(c *gin.Context) {
 			c.String(http.StatusForbidden, "Accès refusé")
 			return
 		}
+		log.Println(filePath)
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
 			c.JSON(http.StatusNotFound, "Not Found")
 			return
@@ -156,12 +155,12 @@ func DeleteFile(c *gin.Context) {
 }
 
 func MoveFile(c *gin.Context) {
-	requestedUserID := c.DefaultQuery("userId", "")
+	claims := jwt.ExtractClaims(c)
+	requestedUserID := c.DefaultQuery("userId", claims["user_id"].(string))
 	path := c.DefaultQuery("path", "")
 	newpath := c.DefaultQuery("newpath", "")
 	filename := c.DefaultQuery("filename", "")
 	newFilename := c.DefaultQuery("newName", "")
-	claims := jwt.ExtractClaims(c)
 
 	if accessManager(c, requestedUserID) {
 		userPath := filepath.Join(config.Configuration.Storage.Directory, claims["user_id"].(string))
@@ -198,10 +197,10 @@ func MoveFile(c *gin.Context) {
 }
 
 func CreateFolder(c *gin.Context) {
-	requestedUserID := c.DefaultQuery("userId", "")
+	claims := jwt.ExtractClaims(c)
+	requestedUserID := c.DefaultQuery("userId", claims["user_id"].(string))
 	path := c.DefaultQuery("path", "")
 	folderName := c.DefaultQuery("folderName", "")
-	claims := jwt.ExtractClaims(c)
 
 	if accessManager(c, requestedUserID) {
 		userPath := filepath.Join(config.Configuration.Storage.Directory, claims["user_id"].(string))
@@ -250,7 +249,7 @@ func DeleteFolder(c *gin.Context) {
 
 func Content(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
-	requestedUserID := c.DefaultQuery("userId", "")
+	requestedUserID := c.DefaultQuery("userId", claims["user_id"].(string))
 	path := c.DefaultQuery("path", "")
 	userPath := filepath.Join(config.Configuration.Storage.Directory, claims["user_id"].(string))
 	requestedPath := filepath.Join(userPath, path)

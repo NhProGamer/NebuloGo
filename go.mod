@@ -7,8 +7,6 @@ toolchain go1.23.0
 require (
 	github.com/appleboy/gin-jwt/v2 v2.10.0
 	github.com/gin-gonic/gin v1.10.0
-	github.com/google/uuid v1.6.0
-	github.com/mattn/go-sqlite3 v1.14.23
 	go.mongodb.org/mongo-driver v1.17.0
 	golang.org/x/crypto v0.26.0
 	gopkg.in/yaml.v2 v2.4.0

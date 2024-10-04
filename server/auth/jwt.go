@@ -67,7 +67,7 @@ func initParams() *jwt.GinJWTMiddleware {
 
 		SendCookie:     true,
 		SecureCookie:   strings.HasPrefix(config.Configuration.Server.ServerURL, "https://"), //non HTTPS dev environments
-		CookieHTTPOnly: true,                                                                 // JS can't modify
+		CookieHTTPOnly: false,                                                                // JS can't modify
 		CookieDomain:   strings.SplitN(config.Configuration.Server.ServerURL, "//", 2)[1],
 		CookieName:     "token",
 		CookieSameSite: http.SameSiteDefaultMode, //SameSiteDefaultMode, SameSiteLaxMode, SameSiteStrictMode, SameSiteNoneMode
