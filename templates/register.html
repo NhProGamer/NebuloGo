@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NebuloGo - Gestionnaire de fichiers</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/static/js/app.js" defer></script>
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="bg-gray-100 h-screen flex flex-col">
+<!-- Barre de navigation (fixe) -->
+<nav class="bg-blue-500 text-white p-4 shadow-md fixed top-0 left-0 right-0 z-10">
+    <div class="container mx-auto flex justify-between">
+        <h1 class="text-xl font-semibold">NebuloGo Files</h1>
+        <div class="flex space-x-4">
+            <a href="#" class="hover:text-gray-200">Home</a>
+            <a href="#" class="hover:text-gray-200">Settings</a>
+            <a href="/logout" class="hover:text-gray-200">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Liste des fichiers (scrollable) -->
+<main class="flex-grow overflow-y-auto mt-16">
+    <div class="container mx-auto py-6">
+        <table class="min-w-full bg-white rounded-lg shadow-md">
+            <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-2 text-left text-gray-600 font-semibold">Nom</th>
+                <th class="px-4 py-2 text-left text-gray-600 font-semibold">Taille</th>
+                <th class="px-4 py-2 text-left text-gray-600 font-semibold">Type</th>
+                <th class="px-4 py-2 text-left text-gray-600 font-semibold">Date de modification</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200" id="file-list">
+            <!-- Exemple de fichier -->
+            <tr class="hover:bg-gray-100">
+                <td class="px-4 py-2 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5V18a2.25 2.25 0 002.25 2.25h13.5A2.25 2.25 0 0021 18V7.5M16.5 3h-9M5.25 9h13.5" />
+                    </svg>
+                    <span>Document.pdf</span>
+                </td>
+                <td class="px-4 py-2">57 KB</td>
+                <td class="px-4 py-2">application/pdf</td>
+                <td class="px-4 py-2">08/09/2023 08:39</td>
+            </tr>
+            <!-- Autres fichiers/dossiers seront générés dynamiquement ici -->
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<!-- Menu contextuel personnalisé -->
+<div id="contextMenu" class="custom-context-menu bg-white border rounded shadow-lg p-2 w-48">
+    <button id="download" class="flex items-center justify-start w-full text-left p-2 hover:bg-gray-100" onclick="downloadFile()">
+        <!-- Icône et texte pour télécharger -->
+    </button>
+    <!-- Autres boutons (Renommer, Supprimer, etc.) -->
+</div>
+
+<!-- Popups pour les actions utilisateur -->
+<div id="inputPopupOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-20">
+    <!-- Contenu du popup -->
+</div>
+
+<div id="warningPopupOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-20">
+    <!-- Contenu du popup d'avertissement -->
+</div>
+</body>
+</html>

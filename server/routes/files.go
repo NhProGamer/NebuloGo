@@ -279,7 +279,7 @@ func Content(c *gin.Context) {
 			if file.IsDir() {
 				items = append(items, map[string]interface{}{"Type": "directory", "Name": file.Name(), "Time": fileInfo.ModTime()})
 			} else {
-				items = append(items, map[string]interface{}{"Type": "file", "Name": file.Name(), "Time": fileInfo.ModTime()})
+				items = append(items, map[string]interface{}{"Type": "file", "Name": file.Name(), "Size": fileInfo.Size(), "Time": fileInfo.ModTime()})
 			}
 		}
 

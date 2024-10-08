@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NebuloGo - Gestionnaire de fichiers</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="/static/js/app.js" defer></script>
+    <script type="module" src="https://cdn.skypack.dev/pin/mime@v4.0.4-38o8KqS61UAZKkxbdOh1/mode=imports,min/optimized/mime.js"></script>
+    <script type="module" src="/static/js/app.js" defer></script>
     <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body class="bg-gray-100 h-screen flex flex-col">
@@ -22,10 +23,28 @@
 </nav>
 
 <!-- Liste des fichiers (scrollable) -->
-<main class="flex-grow overflow-y-auto mt-16">
+<!--<main class="flex-grow overflow-y-auto mt-16">
     <div class="container mx-auto py-6 h-full" id="file-container">
         <ul class="space-y-4" id="filePlaceholder">
         </ul>
+    </div>
+</main>-->
+
+<!-- Liste des fichiers (scrollable) -->
+<main class="flex-grow overflow-y-auto mt-16">
+    <div class="container mx-auto py-6 h-full" id="file-container">
+        <table class="min-w-full bg-white rounded-lg shadow-md">
+            <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-2 text-left text-gray-600 font-semibold">Nom</th>
+                <th class="px-4 py-2 text-left text-gray-600 font-semibold">Taille</th>
+                <th class="px-4 py-2 text-left text-gray-600 font-semibold">Type</th>
+                <th class="px-4 py-2 text-left text-gray-600 font-semibold">Date de modification</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200" id="file-list">
+            </tbody>
+        </table>
     </div>
 </main>
 
