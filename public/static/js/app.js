@@ -124,7 +124,7 @@ function renderFolderContent(data) {
         // Extraire les composants de la date
         const day = String(parsedDate.getDate()).padStart(2, '0'); // Jour
         const month = String(parsedDate.getMonth() + 1).padStart(2, '0'); // Mois (0-11, donc +1)
-        const year = String(parsedDate.getFullYear()).slice(-2); // Année (deux derniers chiffres)
+        const year = String(parsedDate.getFullYear()); // Année (deux derniers chiffres)
         const hours = String(parsedDate.getHours()).padStart(2, '0'); // Heures
         const minutes = String(parsedDate.getMinutes()).padStart(2, '0'); // Minutes
 
