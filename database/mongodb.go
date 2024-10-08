@@ -22,21 +22,13 @@ type MongoUser struct {
 	LastModified   time.Time          `bson:"last_modified"`
 }
 
-type MongoFile struct {
-	InternalID   primitive.ObjectID `bson:"_id,omitempty"` // Utilisation d'ObjectID comme clé primaire
-	FileName     string             `bson:"file_name"`
-	Owner        primitive.ObjectID `bson:"owner_id"`
-	LastModified time.Time          `bson:"last_modified"`
-	CreationDate time.Time          `bson:"creation_date"`
-}
-
-type MongoFolder struct {
+type ShareFile struct {
 	InternalID   primitive.ObjectID   `bson:"_id,omitempty"` // Utilisation d'ObjectID comme clé primaire
-	FolderName   string               `bson:"folder_name"`
+	FilePath     string               `bson:"file_path"`
 	Owner        primitive.ObjectID   `bson:"owner_id"`
-	Content      []primitive.ObjectID `bson:"content"`
-	LastModified time.Time            `bson:"last_modified"`
-	CreationDate time.Time            `bson:"creation_date"`
+	AllowedUsers []primitive.ObjectID `bson:"allowed_users"`
+	Public       bool                 `bson:"public"`
+	Expiration   time.Time            `bson:"expiration"` // Champ pour la date d'expiration
 }
 
 type DataManager struct {
@@ -72,6 +64,18 @@ func NewDataManager(serverURL string) (*DataManager, error) {
 	}
 	// Créer l'index
 	_, err = usersCollection.Indexes().CreateOne(context.TODO(), indexModelLoginID)
+	if err != nil {
+		return nil, err
+	}
+
+	indexModelShares := mongo.IndexModel{
+		Keys: bson.M{
+			"expiration": 1, // Index croissant sur le champ d'expiration
+		},
+		Options: options.Index().SetExpireAfterSeconds(0), // Supprimez les documents après la date d'expiration
+	}
+
+	_, err = sharesCollection.Indexes().CreateOne(context.TODO(), indexModelShares)
 	if err != nil {
 		return nil, err
 	}
@@ -138,4 +142,42 @@ func (um *UserManager) GetUserByLoginID(loginID string) (*MongoUser, error) {
 	return &user, nil
 }
 
-// --------------------------- MÉTHODES POUR FOLDER MANAGER ---------------------------
+// --------------------------- MÉTHODES POUR SHARE MANAGER ---------------------------
+
+func (sm *ShareManager) CreateShare(owner primitive.ObjectID, path string, allowedUsers []primitive.ObjectID, public bool, expiration time.Time) error {
+	user := ShareFile{
+		InternalID:   primitive.NewObjectID(),
+		FilePath:     path,
+		Owner:        owner,
+		AllowedUsers: allowedUsers,
+		Public:       public,
+		Expiration:   expiration,
+	}
+	_, err := sm.collection.InsertOne(context.TODO(), user)
+	return err
+}
+
+func (sm *ShareManager) RemoveShare(internalID primitive.ObjectID) error {
+	// Filtre basé sur l'InternalID
+	filter := bson.M{"_id": internalID}
+
+	// Supprimer le document correspondant
+	_, err := sm.collection.DeleteOne(context.Background(), filter)
+	return err
+}
+
+func (sm *ShareManager) GetShareFile(internalID primitive.ObjectID) (*ShareFile, error) {
+	// Filtre basé sur l'InternalID
+	filter := bson.M{"_id": internalID}
+
+	// Créer une variable pour stocker le résultat
+	var shareFile ShareFile
+
+	// Rechercher le document correspondant
+	err := sm.collection.FindOne(context.Background(), filter).Decode(&shareFile)
+	if err != nil {
+		return nil, err // Retourner l'erreur si le document n'est pas trouvé ou s'il y a un problème
+	}
+
+	return &shareFile, nil
+}

@@ -2,6 +2,7 @@ package routes
 
 import (
 	"NebuloGo/config"
+	"NebuloGo/utils"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"io"
@@ -9,32 +10,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 func accessManager(c *gin.Context, requestedUserID string) bool {
 	claims := jwt.ExtractClaims(c)
 	return claims["user_id"].(string) == requestedUserID
-}
-
-func isPathAllowed(baseDir, requestedPath string) bool {
-	// Nettoyer le chemin demandé
-	cleanedPath := filepath.Clean(requestedPath)
-
-	// Construire le chemin absolu pour le chemin demandé
-	absRequestedPath, err := filepath.Abs(cleanedPath)
-	if err != nil {
-		return false
-	}
-
-	// Construire le chemin absolu basé sur le répertoire de base
-	absBaseDir, err := filepath.Abs(baseDir)
-	if err != nil {
-		return false
-	}
-
-	// Vérifier que le chemin demandé commence bien par le répertoire de base
-	return strings.HasPrefix(absRequestedPath, absBaseDir)
 }
 
 func DownloadFile(c *gin.Context) {
@@ -46,7 +26,7 @@ func DownloadFile(c *gin.Context) {
 	if accessManager(c, requestedUserID) {
 		userPath := filepath.Join(config.Configuration.Storage.Directory, claims["user_id"].(string))
 		filePath := filepath.Join(userPath, path, filename)
-		if !isPathAllowed(userPath, filePath) {
+		if !utils.IsPathAllowed(userPath, filePath) {
 			c.String(http.StatusForbidden, "Accès refusé")
 			return
 		}
@@ -74,7 +54,7 @@ func UploadFile(c *gin.Context) {
 		userPath := filepath.Join(config.Configuration.Storage.Directory, claims["user_id"].(string))
 		filePath := filepath.Join(userPath, path)
 
-		if !isPathAllowed(userPath, filePath) {
+		if !utils.IsPathAllowed(userPath, filePath) {
 			c.String(http.StatusForbidden, "Accès refusé")
 			return
 		}
@@ -133,7 +113,7 @@ func DeleteFile(c *gin.Context) {
 	if accessManager(c, requestedUserID) {
 		userPath := filepath.Join(config.Configuration.Storage.Directory, claims["user_id"].(string))
 		filePath := filepath.Join(userPath, path, filename)
-		if !isPathAllowed(userPath, filePath) {
+		if !utils.IsPathAllowed(userPath, filePath) {
 			c.String(http.StatusForbidden, "Accès refusé")
 			return
 		}
@@ -171,11 +151,11 @@ func MoveFile(c *gin.Context) {
 		} else {
 			newFilePath = filepath.Join(userPath, newpath, newFilename)
 		}
-		if !isPathAllowed(userPath, filePath) {
+		if !utils.IsPathAllowed(userPath, filePath) {
 			c.String(http.StatusForbidden, "Accès refusé")
 			return
 		}
-		if !isPathAllowed(userPath, newFilePath) {
+		if !utils.IsPathAllowed(userPath, newFilePath) {
 			c.String(http.StatusForbidden, "Accès refusé")
 			return
 		}
@@ -205,7 +185,7 @@ func CreateFolder(c *gin.Context) {
 	if accessManager(c, requestedUserID) {
 		userPath := filepath.Join(config.Configuration.Storage.Directory, claims["user_id"].(string))
 		folderPath := filepath.Join(userPath, path, folderName)
-		if !isPathAllowed(userPath, folderPath) {
+		if !utils.IsPathAllowed(userPath, folderPath) {
 			c.String(http.StatusForbidden, "Accès refusé")
 			return
 		}
@@ -227,7 +207,7 @@ func DeleteFolder(c *gin.Context) {
 	if accessManager(c, requestedUserID) {
 		userPath := filepath.Join(config.Configuration.Storage.Directory, claims["user_id"].(string))
 		folderPath := filepath.Join(userPath, path, folderName)
-		if !isPathAllowed(userPath, folderPath) {
+		if !utils.IsPathAllowed(userPath, folderPath) {
 			c.String(http.StatusForbidden, "Accès refusé")
 			return
 		}
@@ -255,7 +235,7 @@ func Content(c *gin.Context) {
 	requestedPath := filepath.Join(userPath, path)
 
 	if accessManager(c, requestedUserID) {
-		if !isPathAllowed(userPath, requestedPath) {
+		if !utils.IsPathAllowed(userPath, requestedPath) {
 			c.String(http.StatusForbidden, "Accès refusé")
 			return
 		}

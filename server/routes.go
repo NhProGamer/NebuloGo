@@ -35,4 +35,8 @@ func ConfigureRoutes(server *Server) {
 	filesApi.DELETE("/", routes.DeleteFile)
 	filesApi.POST("/folder", routes.CreateFolder)
 	filesApi.DELETE("/folder", routes.DeleteFolder)
+
+	sharesApi := router.Group("/api/v1/share")
+	sharesApi.POST("/", routes.CreateShare, auth.JWTMiddleware.MiddlewareFunc())
+	sharesApi.GET("/public", routes.DownloadSharePublic)
 }

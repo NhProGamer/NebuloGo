@@ -320,3 +320,14 @@ export function createFolder(folderName) {
             .catch(error => console.error('Error creating folder:', error));
     }
 }
+
+export function createShare(folderName) {
+    if (folderName) {
+        fetch(`/api/v1/share/folder?path=${ActualPath}&folderName=${encodeURIComponent(SelectedItem.get('Name'))}`, {
+            method: 'POST',
+            credentials: 'include'
+        })
+            .then(() => loadFolderContent())
+            .catch(error => console.error('Error creating share:', error));
+    }
+}
