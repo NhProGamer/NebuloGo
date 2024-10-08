@@ -23,22 +23,20 @@ type MongoUser struct {
 }
 
 type MongoFile struct {
-	InternalID   primitive.ObjectID   `bson:"_id,omitempty"` // Utilisation d'ObjectID comme clé primaire
-	FileName     string               `bson:"file_name"`
-	Owner        primitive.ObjectID   `bson:"owner_id"`
-	SharedWith   []primitive.ObjectID `bson:"shared_with"`
-	IsPublic     bool                 `bson:"is_public"`
-	LastModified time.Time            `bson:"last_modified"`
+	InternalID   primitive.ObjectID `bson:"_id,omitempty"` // Utilisation d'ObjectID comme clé primaire
+	FileName     string             `bson:"file_name"`
+	Owner        primitive.ObjectID `bson:"owner_id"`
+	LastModified time.Time          `bson:"last_modified"`
+	CreationDate time.Time          `bson:"creation_date"`
 }
 
 type MongoFolder struct {
 	InternalID   primitive.ObjectID   `bson:"_id,omitempty"` // Utilisation d'ObjectID comme clé primaire
 	FolderName   string               `bson:"folder_name"`
 	Owner        primitive.ObjectID   `bson:"owner_id"`
-	SharedWith   []primitive.ObjectID `bson:"shared_with"`
-	IsPublic     bool                 `bson:"is_public"`
+	Content      []primitive.ObjectID `bson:"content"`
 	LastModified time.Time            `bson:"last_modified"`
-	Content      []primitive.ObjectID `bson:"content"` // Référence au dossier parent
+	CreationDate time.Time            `bson:"creation_date"`
 }
 
 type DataManager struct {
@@ -152,8 +150,6 @@ func (fm *FileManager) CreateFile(owner primitive.ObjectID, fileName string) err
 		InternalID:   primitive.NewObjectID(), // Génération automatique de l'ObjectID
 		FileName:     fileName,
 		Owner:        owner,
-		SharedWith:   []primitive.ObjectID{},
-		IsPublic:     false,
 		LastModified: time.Now(),
 	}
 
@@ -161,4 +157,165 @@ func (fm *FileManager) CreateFile(owner primitive.ObjectID, fileName string) err
 	return err
 }
 
+func (fm *FileManager) RenameFile(fileId primitive.ObjectID, fileName string) error {
+	_, err := fm.collection.UpdateOne(context.TODO(),
+		bson.M{"_id": fileId},
+		bson.M{"$set": bson.M{"file_name": fileName, "last_modified": time.Now()}})
+	return err
+}
+
+func (fm *FileManager) RemoveFile(fileId primitive.ObjectID) error {
+	// Démarrer une session pour effectuer des opérations transactionnelles
+	session, err := fm.collection.Database().Client().StartSession()
+	if err != nil {
+		return err
+	}
+	defer session.EndSession(context.TODO())
+
+	// Définir la logique transactionnelle
+	callback := func(sessCtx mongo.SessionContext) (interface{}, error) {
+		// Supprimer le fichier de la collection "files"
+		_, err := fm.collection.DeleteOne(sessCtx, bson.M{"_id": fileId})
+		if err != nil {
+			return nil, err
+		}
+
+		// Obtenir la collection "folders" pour supprimer le fichier de tous les dossiers
+		folderCollection := fm.collection.Database().Collection("folders")
+		_, err = folderCollection.UpdateMany(
+			sessCtx,
+			bson.M{"content": fileId},
+			bson.M{
+				"$pull": bson.M{"content": fileId},
+				"$set":  bson.M{"last_modified": time.Now()},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	}
+
+	// Exécuter la transaction
+	_, err = session.WithTransaction(context.TODO(), callback)
+	return err
+}
+
 // --------------------------- MÉTHODES POUR FOLDER MANAGER ---------------------------
+
+func (fm *FolderManager) CreateFolder(owner primitive.ObjectID, folderName string) error {
+	file := MongoFolder{
+		InternalID:   primitive.NewObjectID(), // Génération automatique de l'ObjectID
+		FolderName:   folderName,
+		Owner:        owner,
+		Content:      []primitive.ObjectID{},
+		LastModified: time.Now(),
+		CreationDate: time.Now(),
+	}
+
+	_, err := fm.collection.InsertOne(context.TODO(), file)
+	return err
+}
+
+func (fm *FileManager) RenameFolder(folderId primitive.ObjectID, folderName string) error {
+	_, err := fm.collection.UpdateOne(context.TODO(),
+		bson.M{"_id": folderId},
+		bson.M{"$set": bson.M{"folder_name": folderName, "last_modified": time.Now()}})
+	return err
+}
+
+func (fm *FolderManager) AddFileToFolder(folderId primitive.ObjectID, fileId primitive.ObjectID) error {
+	// Mettre à jour le dossier pour ajouter l'ID du fichier à la liste de contenu
+	_, err := fm.collection.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": folderId},
+		bson.M{
+			"$addToSet": bson.M{"content": fileId}, // Utilise $addToSet pour éviter les doublons
+			"$set":      bson.M{"last_modified": time.Now()},
+		},
+	)
+	return err
+}
+
+func (fm *FolderManager) RemoveFileFromFolder(folderId primitive.ObjectID, fileId primitive.ObjectID) error {
+	// Mettre à jour le dossier pour retirer l'ID du fichier de la liste de contenu
+	_, err := fm.collection.UpdateOne(
+		context.TODO(),
+		bson.M{"_id": folderId},
+		bson.M{
+			"$pull": bson.M{"content": fileId}, // Utilise $pull pour retirer l'ID du fichier
+			"$set":  bson.M{"last_modified": time.Now()},
+		},
+	)
+	return err
+}
+
+func (fm *FolderManager) MoveFileFromFolder(sourceFolderId primitive.ObjectID, destinationFolderId primitive.ObjectID, fileId primitive.ObjectID) error {
+	err := fm.RemoveFileFromFolder(sourceFolderId, fileId)
+	err = fm.AddFileToFolder(destinationFolderId, fileId)
+	return err
+}
+
+func (fm *FolderManager) RemoveFolder(folderId primitive.ObjectID) error {
+	// Démarrer une session pour effectuer des opérations transactionnelles
+	session, err := fm.collection.Database().Client().StartSession()
+	if err != nil {
+		return err
+	}
+	defer session.EndSession(context.TODO())
+
+	// Définir la logique transactionnelle
+	callback := func(sessCtx mongo.SessionContext) (interface{}, error) {
+		// Récupérer le dossier à supprimer
+		var folder MongoFolder
+		err := fm.collection.FindOne(sessCtx, bson.M{"_id": folderId}).Decode(&folder)
+		if err != nil {
+			return nil, err
+		}
+
+		// Supprimer récursivement le contenu du dossier (fichiers et sous-dossiers)
+		for _, contentId := range folder.Content {
+			// Vérifier si l'ID correspond à un fichier ou un dossier
+			fileCollection := fm.collection.Database().Collection("files")
+			folderCollection := fm.collection.Database().Collection("folders")
+
+			// Chercher un fichier avec cet ID
+			var file MongoFile
+			fileErr := fileCollection.FindOne(sessCtx, bson.M{"_id": contentId}).Decode(&file)
+			if fileErr == nil {
+				// Si un fichier est trouvé, le supprimer
+				_, err = fileCollection.DeleteOne(sessCtx, bson.M{"_id": contentId})
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				// Si aucun fichier n'est trouvé, chercher un sous-dossier avec cet ID
+				var subFolder MongoFolder
+				folderErr := folderCollection.FindOne(sessCtx, bson.M{"_id": contentId}).Decode(&subFolder)
+				if folderErr == nil {
+					// Si un sous-dossier est trouvé, le supprimer récursivement
+					err = fm.RemoveFolder(contentId)
+					if err != nil {
+						return nil, err
+					}
+				} else {
+					// Si l'ID ne correspond ni à un fichier ni à un dossier, retourner une erreur
+					return nil, mongo.ErrNoDocuments
+				}
+			}
+		}
+
+		// Supprimer le dossier lui-même après avoir supprimé tout son contenu
+		_, err = fm.collection.DeleteOne(sessCtx, bson.M{"_id": folderId})
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	}
+
+	// Exécuter la transaction
+	_, err = session.WithTransaction(context.TODO(), callback)
+	return err
+}
