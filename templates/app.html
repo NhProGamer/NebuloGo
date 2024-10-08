@@ -5,10 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NebuloGo - Gestionnaire de fichiers</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="module">
-        import mime from "https://cdn.jsdelivr.net/npm/mime@4.0.4/+esm"
+    <script type="module" defer>
+        import { ActualPath, UserId, SelectedItem, openPopup, openPopupWarning, changeFolder, loadFolderContent, downloadFile, deleteFile, renameFile, createFolder } from '/static/js/app.js';
+        window.ActualPath = ActualPath;
+        window.UserId = UserId;
+        window.SelectedItem = SelectedItem;
+        window.openPopup = openPopup;
+        window.openPopupWarning = openPopupWarning;
+        window.changeFolder = changeFolder;
+        window.loadFolderContent = loadFolderContent;
+        window.downloadFile = downloadFile;
+        window.deleteFile = deleteFile;
+        window.renameFile = renameFile;
+        window.createFolder = createFolder;
+        loadFolderContent()
     </script>
-    <script src="/static/js/app.js" defer></script>
     <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body class="bg-gray-100 h-screen flex flex-col">

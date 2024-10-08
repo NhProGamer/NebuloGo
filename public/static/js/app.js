@@ -1,7 +1,9 @@
-let ActualPath = new URLSearchParams(window.location.search).get('path') ?? '';
+import mime from 'https://cdn.jsdelivr.net/npm/mime@4.0.4/+esm'
+
+export let ActualPath = new URLSearchParams(window.location.search).get('path') ?? '';
 const jwt = getCookie('token');
-let UserId = parseJwt(jwt).user_id;
-let SelectedItem = new Map();
+export let UserId = parseJwt(jwt).user_id;
+export let SelectedItem = new Map();
 SelectedItem.set('Name', "");
 SelectedItem.set('Type', "");
 const MAX_PARALLEL_UPLOADS = 3;
@@ -34,9 +36,7 @@ function formatBytes(bytes) {
     return `${bytes.toFixed(2)} ${units[index]}`; // Format avec 2 décimales
 }
 
-
-
-function openPopup(title, content, placeholder) {
+export function openPopup(title, content, placeholder) {
     return new Promise((resolve, reject) => {
         const popup = document.getElementById('inputPopupOverlay');
         document.getElementById('InputPopupInput').value = content
@@ -62,7 +62,7 @@ function openPopup(title, content, placeholder) {
     });
 }
 
-function openPopupWarning(title, content) {
+export function openPopupWarning(title, content) {
     return new Promise((resolve, reject) => {
         const popup = document.getElementById('warningPopupOverlay');
         popup.querySelector('#warningPopupTitle').innerHTML = title;
@@ -94,14 +94,14 @@ function closePopupWarning() {
 
 
 // Utility function to update the URL without reloading
-function changeFolder(folderId) {
+export function changeFolder(folderId) {
     ActualPath += folderId + "/";
     history.pushState({ path: ActualPath }, null, '?path=' + ActualPath);
     loadFolderContent();
 }
 
 // Load folder content dynamically
-function loadFolderContent() {
+export function loadFolderContent() {
     fetch(`/api/v1/files/content?userId=${UserId}&path=${ActualPath}`, {
         method: 'GET',
         credentials: 'include'
@@ -116,7 +116,7 @@ function loadFolderContent() {
 // Generate folder and file HTML
 function renderFolderContent(data) {
     if (!data || data.length === 0) {
-        return 'Dossier vide';  // Ne rien faire si data est vide
+        return '';  // Ne rien faire si data est vide
     }
     return data.map(item => {
         const parsedDate = new Date(item.Time);
@@ -138,7 +138,7 @@ function renderFolderContent(data) {
                         <span>${item.Name}</span>
                     </td>
                     <td class="px-4 py-2">${formatBytes(item.Size)}</td>
-                    <td class="px-4 py-2">application/pdf</td>
+                    <td class="px-4 py-2">${mime.getType(item.Name)}</td>
                     <td class="px-4 py-2">${day}/${month}/${year} ${hours}:${minutes}</td>
                 </tr>`
         } else if (item.Type === 'directory') {
@@ -276,11 +276,11 @@ document.addEventListener('click', function () {
 
 // ---------------------- FILE OPERATIONS ----------------------
 
-function downloadFile() {
+export function downloadFile() {
     window.location.href=`/api/v1/files/?userId=${UserId}&path=${ActualPath}&filename=${encodeURIComponent(SelectedItem.get('Name'))}`;
 }
 
-function deleteFile() {
+export function deleteFile() {
     if (SelectedItem.get("Type") === "file") {
         fetch(`/api/v1/files/?userId=${UserId}&path=${ActualPath}&filename=${encodeURIComponent(SelectedItem.get('Name'))}`, {
             method: 'DELETE',
@@ -298,7 +298,7 @@ function deleteFile() {
     }
 }
 
-function renameFile(newName) {
+export function renameFile(newName) {
     //let newName = prompt("Enter new name:", SelectedItem.get('Name'));
     if (newName) {
         fetch(`/api/v1/files/?userId=${UserId}&path=${ActualPath}&filename=${encodeURIComponent(SelectedItem.get('Name'))}&newName=${encodeURIComponent(newName)}`, {
@@ -310,7 +310,7 @@ function renameFile(newName) {
     }
 }
 
-function createFolder(folderName) {
+export function createFolder(folderName) {
     if (folderName) {
         fetch(`/api/v1/files/folder?userId=${UserId}&path=${ActualPath}&folderName=${encodeURIComponent(folderName)}`, {
             method: 'POST',
@@ -320,6 +320,3 @@ function createFolder(folderName) {
             .catch(error => console.error('Error creating folder:', error));
     }
 }
-
-// Load folder content initially
-loadFolderContent();
