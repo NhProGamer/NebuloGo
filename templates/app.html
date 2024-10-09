@@ -13,6 +13,8 @@
         window.api = api
         window.pm = pm
         app.loadFolderContent()
+
+
     </script>
     <link rel="stylesheet" href="/static/css/app.css">
 </head>
@@ -85,7 +87,7 @@
         <span class="text-gray-700">Supprimer</span>
     </button>
 
-    <button id="share" class="flex items-center justify-start w-full text-left p-2 hover:bg-gray-100" onclick="api.createShare(app.ActualPath + app.SelectedItem.get('Name'), '', '')">
+    <button id="share" class="flex items-center justify-start w-full text-left p-2 hover:bg-gray-100" onclick="pm.showSharePopup().then(([shareDate, isPublic]) => {api.createShare(app.ActualPath + app.SelectedItem.get('Name'), shareDate, isPublic).then(shareId => console.log(shareId))})">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
         </svg>
@@ -116,5 +118,39 @@
         </div>
     </div>
 </div>
+
+<div id="infoPopupOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-20">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+        <h2 id="infoPopupTitle" class="text-lg font-bold mb-4"></h2>
+        <p id="infoPopupContent" class="text-gray-700 mb-4"></p>
+        <div class="flex justify-between">
+            <button id="infoOkPopupButton" class="bg-green-500 text-white px-4 py-2 rounded">Ok</button>
+        </div>
+    </div>
+</div>
+
+<div id="sharePopupOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-20">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+        <h2 id="sharePopupTitle" class="text-lg font-bold mb-4">Partager un fichier</h2>
+        <div class="space-y-4">
+            <div>
+                <label for="shareDate" class="block text-gray-700">Date d'expiration</label>
+                <input type="date" id="shareDate" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm" required>
+            </div>
+            <div>
+                <label for="isPublic" class="block text-gray-700">Partage public ?</label>
+                <select id="isPublic" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm" required>
+                    <option value="false">Non</option>
+                    <option value="true">Oui</option>
+                </select>
+            </div>
+            <div class="flex justify-between">
+                <button type="button" id="cancelSharePopupButton" class="bg-gray-500 text-white px-4 py-2 rounded">Annuler</button>
+                <button type="button" id="confirmSharePopupButton" class="bg-green-500 text-white px-4 py-2 rounded">Partager</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

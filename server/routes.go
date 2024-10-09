@@ -19,7 +19,8 @@ func ConfigureRoutes(server *Server) {
 
 	//Routes for app
 	app := router.Group("/drive", auth.JWTMiddleware.MiddlewareFunc())
-	app.GET("/", routes.NebuloGoApp)
+	app.GET("/", routes.Drive)
+	app.GET("/shares", routes.Shares)
 
 	router.NoRoute(auth.JWTMiddleware.MiddlewareFunc(), auth.HandleNoRoute())
 

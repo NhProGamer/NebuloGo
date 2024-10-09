@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
@@ -48,8 +49,25 @@ func DownloadSharePublic(c *gin.Context) {
 func CreateShare(c *gin.Context) {
 	claims := jwt.ExtractClaims(c)
 	path := c.DefaultQuery("path", "")
+	public := c.DefaultQuery("public", "false")
+	date := c.DefaultQuery("date", "")
 
 	if path == "" {
+		c.String(http.StatusBadRequest, "Mauvaise requête")
+		return
+	}
+
+	expirationDate := time.Date(9999, time.December, 31, 23, 59, 59, 0, time.UTC)
+	if path != "" {
+		parsedTime, err := time.Parse("2006-01-02", date)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Mauvaise requête")
+			return
+		}
+		expirationDate = parsedTime
+	}
+	isPublic, err := strconv.ParseBool(public)
+	if err != nil {
 		c.String(http.StatusBadRequest, "Mauvaise requête")
 		return
 	}
@@ -59,7 +77,6 @@ func CreateShare(c *gin.Context) {
 		c.String(http.StatusForbidden, "Accès refusé")
 		return
 	}
-
 	if _, err := os.Stat(filepath.Join(config.Configuration.Storage.Directory, filePath)); os.IsNotExist(err) {
 		c.JSON(http.StatusNotFound, "Not Found")
 		return
@@ -69,7 +86,7 @@ func CreateShare(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
-	shareId, err := database.ApplicationDataManager.ShareManager.CreateShare(userDatabaseId, filePath, []primitive.ObjectID{}, true, time.Date(9999, time.December, 31, 23, 59, 59, 0, time.UTC))
+	shareId, err := database.ApplicationDataManager.ShareManager.CreateShare(userDatabaseId, filePath, []primitive.ObjectID{}, isPublic, expirationDate)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, "Internal Server Error")
 		return

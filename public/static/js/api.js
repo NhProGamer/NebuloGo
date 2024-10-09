@@ -54,7 +54,7 @@ export function createFolder(userId, path, folderName) {
 
 export function createShare(path, date, isPublic) {
     return new Promise((resolve, reject) => {
-        fetch(`/api/v1/share/?path=${path}?date=${date}&public=${isPublic}`, {
+        fetch(`/api/v1/share/?path=${path}&date=${date}&public=${isPublic}`, {
             method: 'POST',
             credentials: 'include'
         })

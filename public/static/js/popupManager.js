@@ -43,6 +43,34 @@ export function openPopupWarning(title, content) {
     });
 }
 
+export function openPopupInfo(title, content) {
+    const popup = document.getElementById('warningPopupOverlay');
+    popup.querySelector('#infoPopupTitle').innerHTML = title;
+    popup.querySelector('#infoPopupContent').innerHTML = content;
+    popup.classList.remove('hidden');
+
+    document.getElementById('warningOkPopupButton').onclick = function() {
+        closePopupWarning()
+    };
+}
+
+export function showSharePopup() {
+    const sharePopupOverlay = document.getElementById("sharePopupOverlay");
+    return new Promise((resolve, reject) => {
+        sharePopupOverlay.classList.remove("hidden");
+        document.getElementById('confirmSharePopupButton').onclick = function() {
+            const shareDate = document.getElementById("shareDate").value;
+            const isPublic = document.getElementById("isPublic").value;
+            hideSharePopup()
+            resolve([shareDate, isPublic])
+        };
+        document.getElementById('cancelSharePopupButton').onclick = function() {
+            hideSharePopup();
+            reject()
+        };
+    })
+}
+
 function closePopupInput() {
     const popup = document.getElementById('inputPopupOverlay');
     popup.classList.add('hidden');
@@ -52,4 +80,16 @@ function closePopupInput() {
 function closePopupWarning() {
     const popup = document.getElementById('warningPopupOverlay');
     popup.classList.add('hidden');
+}
+
+function closePopupInfo() {
+    const popup = document.getElementById('infoPopupOverlay');
+    popup.classList.add('hidden');
+}
+
+function hideSharePopup() {
+    const popup = document.getElementById("sharePopupOverlay");
+    popup.classList.add("hidden");
+    document.getElementById("shareDate").value = ""
+    document.getElementById("isPublic").value = ""
 }

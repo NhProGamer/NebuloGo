@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NebuloGoApp(c *gin.Context) {
+func Drive(c *gin.Context) {
 	c.HTML(200, "app.html", gin.H{})
-
 }
