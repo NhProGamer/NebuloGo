@@ -54,14 +54,13 @@ func CreateShare(c *gin.Context) {
 		return
 	}
 
-	userPath := filepath.Join(config.Configuration.Storage.Directory, claims["user_id"].(string))
-	filePath := filepath.Join(userPath, path)
-	if !utils.IsPathAllowed(userPath, filePath) {
+	filePath := filepath.Join(claims["user_id"].(string), path)
+	if !utils.IsPathAllowed(claims["user_id"].(string), filePath) {
 		c.String(http.StatusForbidden, "Accès refusé")
 		return
 	}
 
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(config.Configuration.Storage.Directory, filePath)); os.IsNotExist(err) {
 		c.JSON(http.StatusNotFound, "Not Found")
 		return
 	}
@@ -70,10 +69,10 @@ func CreateShare(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
-	err = database.ApplicationDataManager.ShareManager.CreateShare(userDatabaseId, filePath, []primitive.ObjectID{}, true, time.Unix(1<<63-62135596801, 999999999))
+	shareId, err := database.ApplicationDataManager.ShareManager.CreateShare(userDatabaseId, filePath, []primitive.ObjectID{}, true, time.Date(9999, time.December, 31, 23, 59, 59, 0, time.UTC))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
-	c.JSON(http.StatusOK, "Share created!")
+	c.JSON(http.StatusOK, shareId.Hex())
 }

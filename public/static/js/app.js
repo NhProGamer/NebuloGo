@@ -261,8 +261,10 @@ document.addEventListener('contextmenu', function (e) {
         SelectedItem.set('Type', type);
         if (type !== "file") {
             document.getElementById('download').style.display = 'none'
+            document.getElementById('share').style.display = 'none'
         } else  {
             document.getElementById('download').style.display = ''
+            document.getElementById('share').style.display = ''
         }
     } else {
         contextMenu.style.display = 'none'; // Cacher si clic droit en dehors
@@ -321,13 +323,11 @@ export function createFolder(folderName) {
     }
 }
 
-export function createShare(folderName) {
-    if (folderName) {
-        fetch(`/api/v1/share/folder?path=${ActualPath}&folderName=${encodeURIComponent(SelectedItem.get('Name'))}`, {
+export function createShare() {
+        fetch(`/api/v1/share/?path=${ActualPath + encodeURIComponent(SelectedItem.get('Name'))}`, {
             method: 'POST',
             credentials: 'include'
         })
-            .then(() => loadFolderContent())
+            .then(response => response.text().then(res => console.log(res)))
             .catch(error => console.error('Error creating share:', error));
-    }
 }
