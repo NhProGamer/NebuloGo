@@ -42,4 +42,5 @@ func ConfigureRoutes(server *Server) {
 	sharesApi.POST("/", auth.JWTMiddleware.MiddlewareFunc(), routes.CreateShare)
 	sharesApi.GET("/download", routes.DownloadSharePublic)
 	sharesApi.GET("/", auth.JWTMiddleware.MiddlewareFunc(), routes.ListShares)
+	sharesApi.DELETE("/", auth.JWTMiddleware.MiddlewareFunc(), routes.DeleteShare)
 }

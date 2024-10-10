@@ -52,17 +52,6 @@ export function createFolder(userId, path, folderName) {
     })
 }
 
-export function createShare(path, date, isPublic) {
-    return new Promise((resolve, reject) => {
-        fetch(`/api/v1/share/?path=${path}&date=${date}&public=${isPublic}`, {
-            method: 'POST',
-            credentials: 'include'
-        })
-            .then(response => response.text().then(shareId => resolve(shareId)))
-            .catch(error => reject(error));
-    })
-}
-
 export function getFolderContent(userId, path) {
     return new Promise((resolve, reject) => {
         fetch(`/api/v1/files/content?userId=${userId}&path=${path}`, {
@@ -74,5 +63,38 @@ export function getFolderContent(userId, path) {
                 resolve(data)
             })
             .catch(error => reject(error));
+    })
+}
+
+export function createShare(path, date, isPublic) {
+    return new Promise((resolve, reject) => {
+        fetch(`/api/v1/share/?path=${path}&date=${date}&public=${isPublic}`, {
+            method: 'POST',
+            credentials: 'include'
+        })
+            .then(response => response.text().then(shareId => resolve(shareId)))
+            .catch(error => reject(error));
+    })
+}
+
+export function deleteShare(shareId) {
+    return new Promise((resolve, reject) => {
+        fetch(`/api/v1/share/?shareId=${shareId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        })
+            .then(response => response.text().then(shareId => resolve(shareId)))
+            .catch(error => reject(error));
+    })
+}
+
+export function getShares() {
+    return new Promise((resolve, reject) => {
+            fetch(`/api/v1/share/`, {
+                method: 'GET',
+                credentials: 'include'
+            })
+                .then((res) => res.json().then(data => resolve(data)))
+                .catch(error => reject(error));
     })
 }

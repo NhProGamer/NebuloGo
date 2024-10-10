@@ -109,3 +109,35 @@ func ListShares(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, shares)
 }
+
+func DeleteShare(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	shareId := c.DefaultQuery("shareId", "")
+	if shareId == "" {
+		c.JSON(http.StatusBadRequest, "Bad Request")
+		return
+	}
+	shareDatabaseId, err := primitive.ObjectIDFromHex(shareId)
+
+	userId := claims["user_id"].(string)
+	userDatabaseId, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	share, err := database.ApplicationDataManager.ShareManager.GetShareFile(shareDatabaseId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	if share.Owner != userDatabaseId {
+		c.JSON(http.StatusForbidden, "Forbidden")
+		return
+	}
+	err = database.ApplicationDataManager.ShareManager.RemoveShare(share.InternalID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	c.JSON(http.StatusOK, "Share deleted successfully!")
+}
