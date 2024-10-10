@@ -59,7 +59,7 @@ func CreateShare(c *gin.Context) {
 
 	expirationDate := time.Date(9999, time.December, 31, 23, 59, 59, 0, time.UTC)
 	if path != "" {
-		parsedTime, err := time.Parse("2006-01-02", date)
+		parsedTime, err := time.Parse("2006-01-02T15:04", date)
 		if err != nil {
 			c.String(http.StatusBadRequest, "Mauvaise requête")
 			return

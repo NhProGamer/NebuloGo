@@ -5,7 +5,6 @@ import (
 	"NebuloGo/salt"
 	"context"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -146,7 +145,6 @@ func (um *UserManager) GetUserByLoginID(loginID string) (*MongoUser, error) {
 // --------------------------- MÉTHODES POUR SHARE MANAGER ---------------------------
 
 func (sm *ShareManager) CreateShare(owner primitive.ObjectID, path string, allowedUsers []primitive.ObjectID, public bool, expiration time.Time) (primitive.ObjectID, error) {
-	log.Println("Creating a share")
 	shareId := primitive.NewObjectID()
 	user := ShareFile{
 		InternalID:   shareId,
