@@ -28,6 +28,7 @@ func ConfigureRoutes(server *Server) {
 	router.POST("/api/v1/auth/login", auth.JWTMiddleware.LoginHandler)
 	authorization := router.Group("/api/v1/auth", auth.JWTMiddleware.MiddlewareFunc())
 	authorization.GET("/refresh_token", auth.JWTMiddleware.RefreshHandler)
+
 	filesApi := router.Group("/api/v1/files", auth.JWTMiddleware.MiddlewareFunc())
 	filesApi.GET("/content", routes.Content)
 	filesApi.GET("/", routes.DownloadFile)
@@ -39,5 +40,6 @@ func ConfigureRoutes(server *Server) {
 
 	sharesApi := router.Group("/api/v1/share")
 	sharesApi.POST("/", auth.JWTMiddleware.MiddlewareFunc(), routes.CreateShare)
-	sharesApi.GET("/public", routes.DownloadSharePublic)
+	sharesApi.GET("/download", routes.DownloadSharePublic)
+	sharesApi.GET("/", auth.JWTMiddleware.MiddlewareFunc(), routes.ListShares)
 }

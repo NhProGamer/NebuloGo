@@ -34,7 +34,7 @@ func DownloadSharePublic(c *gin.Context) {
 		return
 	}
 
-	filePath := filepath.Join(config.Configuration.Storage.Directory, share.FilePath)
+	filePath := filepath.Join(config.Configuration.Storage.Directory, share.Owner.Hex(), share.FilePath)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		c.JSON(http.StatusNotFound, "Not Found")
@@ -86,10 +86,26 @@ func CreateShare(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
-	shareId, err := database.ApplicationDataManager.ShareManager.CreateShare(userDatabaseId, filePath, []primitive.ObjectID{}, isPublic, expirationDate)
+	shareId, err := database.ApplicationDataManager.ShareManager.CreateShare(userDatabaseId, path, []primitive.ObjectID{}, isPublic, expirationDate)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 	c.JSON(http.StatusOK, shareId.Hex())
+}
+
+func ListShares(c *gin.Context) {
+	claims := jwt.ExtractClaims(c)
+	userId := claims["user_id"].(string)
+	userDatabaseId, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	shares, err := database.ApplicationDataManager.ShareManager.ListSharesForUser(userDatabaseId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	c.JSON(http.StatusOK, shares)
 }

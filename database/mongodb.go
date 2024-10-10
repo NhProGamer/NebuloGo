@@ -187,3 +187,39 @@ func (sm *ShareManager) GetShareFile(internalID primitive.ObjectID) (*ShareFile,
 
 	return &shareFile, nil
 }
+
+func (sm *ShareManager) ListSharesForUser(userID primitive.ObjectID) ([]ShareFile, error) {
+	// Préparer un slice pour stocker les résultats
+	var shares []ShareFile
+
+	// Définir le filtre pour récupérer les partages dont l'utilisateur est le propriétaire ou fait partie des allowedUsers
+	filter := bson.M{
+		"$or": []bson.M{
+			{"owner_id": userID},
+			{"allowed_users": userID},
+		},
+	}
+
+	// Requête pour trouver tous les documents correspondant au filtre
+	cursor, err := sm.collection.Find(context.TODO(), filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.TODO())
+
+	// Parcourir le curseur pour décoder les documents
+	for cursor.Next(context.TODO()) {
+		var share ShareFile
+		if err := cursor.Decode(&share); err != nil {
+			return nil, err
+		}
+		shares = append(shares, share)
+	}
+
+	// Vérifier si une erreur s'est produite pendant l'itération
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return shares, nil
+}
