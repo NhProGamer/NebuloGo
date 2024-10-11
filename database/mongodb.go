@@ -235,3 +235,22 @@ func (sm *ShareManager) ListSharesForUser(userID primitive.ObjectID) ([]ShareFil
 
 	return shares, nil
 }
+
+func (sm *ShareManager) GetShareByPathAndOwner(ownerID primitive.ObjectID, path string) (*ShareFile, error) {
+	// Filtre basé sur l'ownerID et le filePath
+	filter := bson.M{
+		"owner_id":  ownerID,
+		"file_path": path,
+	}
+
+	// Créer une variable pour stocker le résultat
+	var shareFile ShareFile
+
+	// Rechercher le document correspondant
+	err := sm.collection.FindOne(context.TODO(), filter).Decode(&shareFile)
+	if err != nil {
+		return nil, err // Retourner l'erreur si le document n'est pas trouvé ou s'il y a un problème
+	}
+
+	return &shareFile, nil
+}
