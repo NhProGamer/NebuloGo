@@ -80,6 +80,20 @@ func NewDataManager(serverURL string) (*DataManager, error) {
 		return nil, err
 	}
 
+	indexModelShareOwnerPath := mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "file_path", Value: 1},
+			{Key: "owner_id", Value: 1},
+		},
+		Options: options.Index().SetUnique(true),
+	}
+
+	// Créer l'index pour garantir que le chemin et le propriétaire sont uniques ensemble
+	_, err = sharesCollection.Indexes().CreateOne(context.TODO(), indexModelShareOwnerPath)
+	if err != nil {
+		return nil, err
+	}
+
 	return &DataManager{
 		Client: client,
 		UserManager: &UserManager{
