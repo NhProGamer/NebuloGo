@@ -1,13 +1,13 @@
-name: Build and Push Docker Image to GitHub Container Registry
+name: Build Nebulogo Docker image.
 
 on:
   push:
     branches:
-      - master  # Default branch set to master
+      - master
   pull_request:
     branches:
-      - master  # Default branch set to master
-  workflow_dispatch:  # Allows manual trigger
+      - master
+  workflow_dispatch:
 
 jobs:
   build:
@@ -33,4 +33,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/nebulogo:latest
+          tags: ghcr.io/${{ github.repository_owner }}/nebulogo:latest  # Ensure lowercase
