@@ -1,13 +1,9 @@
-name: Build Nebulogo Docker image.
+name: Build Nebulogo Docker image
 
 on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
-  workflow_dispatch:
+  release:
+    types: [published]  # Trigger only on new releases
+  workflow_dispatch:  # Allows manual trigger
 
 jobs:
   build:
@@ -33,4 +29,6 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/nebulogo:latest  # Ensure lowercase
+          tags: |
+            ghcr.io/nhprogamer/nebulogo:latest  # Tag 'latest'
+            ghcr.io/nhprogamer/nebulogo:${{ github.event.release.tag_name }}  # Tag with release version
