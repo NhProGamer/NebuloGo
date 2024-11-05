@@ -29,6 +29,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: |
-            ghcr.io/nhprogamer/nebulogo:latest
-            ghcr.io/nhprogamer/nebulogo:${{ github.event.release.tag_name }}
+          tags: ghcr.io/nhprogamer/nebulogo:latest
